@@ -1,0 +1,4410 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family sfdefault
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement H
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\branch body text
+\selected 1
+\filename_suffix 0
+\color #faf0e6
+\end_branch
+\branch sections
+\selected 1
+\filename_suffix 0
+\color #faf0e6
+\end_branch
+\branch dictionary
+\selected 1
+\filename_suffix 0
+\color #faf0e6
+\end_branch
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 4cm
+\topmargin 2cm
+\rightmargin 4cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+The TSI model with time since infection and its Galerkin approximation
+\end_layout
+
+\begin_layout Author
+Joseph D.
+ Peterson [additional authors TBD] and Ronojoy Adhikari
+\end_layout
+
+\begin_layout Address
+\align center
+University of Cambridge, DAMTP
+\end_layout
+
+\begin_layout Abstract
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Epidemic models are useful tools in the fight against infectious diseases.
+ However, the need for fine-grained resolution of details related to geography
+ and demographics often constrains the amount of detail that one can include
+ in the underlying model for disease transmission.
+ At the same time, simplifications to the model of disease transmission
+ will propagate through the rest of the epidemic model with effects that
+ are generally difficult to anticipate.
+ Therefore, a good disease transmission model must strike a balance between
+ accuracy and complexity.
+ For example, it is desirable to represent disease dynamics as a function
+ of time since infection (TSI) but the costs to implement such models at
+ scale will often prove prohibitive.
+ In this report, we present some new strategies for solving TSI models and
+ provide proof-of-concept calculations for optimal control by non-pharmaceutical
+ intervention.
+ Many of the tools described in this report are available through the software
+ package 'pyross'
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Separator plain
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Background and Introduction
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Epidemic modelling is a valuable tool for making well-controlled predictions
+ about how a disease is likely to spread through a population.
+ Predictions from these models can inform strategies that mitigate the damage
+ said disease will cause.
+ Better strategies are possible with better epidemic modelling, and ultimately
+ an epidemic model is only as reliable as the assumptions it makes.
+\end_layout
+
+\begin_layout Standard
+Good epidemic models must be able to provide fine-grained descriptions for
+ how a disease is spreading.
+ It is not enough to simply predict a number of infected persons – one must
+ also be able to predict the spread of disease from city-to-city and age
+ group to age group, for example 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-4,key-5,key-6,key-7"
+literal "false"
+
+\end_inset
+
+.
+ Given the burden of complexity an epidemic model is expected to bear, one
+ cannot usually afford much more than an elementary model of disease transmissio
+n at each level.
+\end_layout
+
+\begin_layout Standard
+To that end, some of the most popular classes of epidemic models are generalizat
+ions of the standard SIR framework, in which a population is partitioned
+ into discrete compartments of susceptibles (S), infecteds (I), and recovered
+ (R) 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-8"
+literal "false"
+
+\end_inset
+
+.
+ In the simplest instance of this framework, a susceptible individual becomes
+ infected by encountering an infected person in some way or another.
+ An infected person is immediately infectious, and the subsequent transition
+ to recovered is effectively a random process with a Poisson distribution.
+ Compartment-based models like SIR model do capture important features of
+ disease transmission, but the reliance on an artificial construction of
+ discrete stages with Markov transitions is at odds with the complex medical
+ realities of disease progression.
+\end_layout
+
+\begin_layout Standard
+A more realistic model of disease transmission will model the infectiousness
+ of an infected individual as a function of the time since infection 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-8,key-5,key-9"
+literal "false"
+
+\end_inset
+
+ Does a person become infectious right away, or is there a delay of several
+ days? When is a person most infectious? What is the probability distribution
+ for recoverty times? The answer to these questions will shape how a disease
+ spreads, and so epidemic models that track time since infection in the
+ infectious population are very important 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-10,key-11"
+literal "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+On the surface, it might seem that any epidemic model based on time since
+ infection will be substantially more complex than the basic SIR model and
+ therefore of limited value to fine-grained epidemic modelling applications.
+ In this report, however, we will show that the SIR model can be extended
+ to consider time-since-infection without making the model much more difficult
+ to solve.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Governing Equations
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch sections
+inverted 0
+status collapsed
+
+\begin_layout Subsection
+The standard SIR model
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+For pedagogical purposes, we first review the standard SIR model.
+ The SIR model is simpler than the basic TSI model, but it shares a similar
+ underlying structure.
+ The number of susceptibles, 
+\begin_inset Formula $S$
+\end_inset
+
+, infecteds, 
+\begin_inset Formula $I$
+\end_inset
+
+, and recovereds, 
+\begin_inset Formula $R$
+\end_inset
+
+ evolve in time by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-\frac{\beta}{N}IS
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI}{dt}=\frac{\beta}{N}IS-\gamma I
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=\gamma I
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $\beta$
+\end_inset
+
+ and 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\gamma$
+\end_inset
+
+
+\family default
+\series default
+\shape default
+\size default
+\emph default
+\bar default
+\strikeout default
+\xout default
+\uuline default
+\uwave default
+\noun default
+\color inherit
+ are rate constants for infection and recovery, respectively (units of 1/time)
+ and 
+\begin_inset Formula $N=S+I+R$
+\end_inset
+
+ is the total population.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Basic TSI equations
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Models that include time since infection are not new, and in fact the equations
+ presented here are covered by existing models for epidemics, many of which
+ are more general 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-5,key-9,key-12"
+literal "false"
+
+\end_inset
+
+.
+ However, models with time-since-infection have historically been computationall
+y expensive.
+ As a compromise between accuracy and usability, ‘multi-stage’ models are
+ a popular strategy for approximating true time-since-infection models 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-13,key-11"
+literal "false"
+
+\end_inset
+
+.
+ Here, however, we will show that this compromise is not necessary – with
+ the right numerical methods, one can obtain all the accuracy of time-since-infe
+ction for the same computational cost as a typical multi-stage model.
+\end_layout
+
+\begin_layout Standard
+In a model with time since infection, we will speak of the infected class
+ in terms of the number density of persons (per unit time) whose infections
+ began at a time s prior to the current time 
+\begin_inset Formula $t$
+\end_inset
+
+, 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+.
+ Thus, the total number of persons infected in the narrow interval between
+ 
+\begin_inset Formula $s$
+\end_inset
+
+ and 
+\begin_inset Formula $s+δs$
+\end_inset
+
+ prior to time 
+\begin_inset Formula $t$
+\end_inset
+
+ is given by 
+\begin_inset Formula $I(t,s)δs$
+\end_inset
+
+.
+ As time passes, the time since infection for all infected persons also
+ continues to pass in the same way.
+ Given 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+, one can calculate the rate at which susceptible persons become infected:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-\int_{0}^{T}ds\frac{\beta(s)}{N}I(t,s)S\label{eq:SIcR_begin}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that the mean rate constant for infection 
+\begin_inset Formula $β(s)$
+\end_inset
+
+ now varies with the time since infection.
+ Here we have assumed that infections older than time 
+\begin_inset Formula $T$
+\end_inset
+
+ are no longer transmitting, 
+\begin_inset Formula $β(s>T)=0$
+\end_inset
+
+, which allows the integral to be truncated at time 
+\begin_inset Formula $T$
+\end_inset
+
+.
+ We have also ignored the possibility of re-infection for the time being.
+ The number density equation for the infected class evolves in time due
+ to the passage of time,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial t}I(t,s)+\frac{\partial}{\partial s}I(t,s)=0
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and the number density of new infections must match the rate at which susceptibl
+e individuals are becoming infected:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I(t,0)=\int_{0}^{T}ds\frac{\beta(s)}{N}I(t,s)S
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As with the standard SIR model, the equations for susceptibles and infecteds
+ are closed.
+ However, for pracitical applications of an epidemic model one may also
+ need to describe the various sub-classes of the infected population (e.g.
+ infectious, recovered, hospitalized, deceased, quarantined, asymptomatic,
+ etc), with each sub-class 
+\begin_inset Formula $α$
+\end_inset
+
+ representing a fraction 
+\begin_inset Formula $\Phi^{\alpha}(s)$
+\end_inset
+
+ of the total with number density
+\begin_inset Formula $I^{α}(t,s)=\Phi^{\alpha}(s)I(t,s)$
+\end_inset
+
+ .
+ The total population in each sub-class at any time is then given by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I^{\alpha}(t)=\int_{0}^{\infty}ds\Phi^{\alpha}(s)I(t,s)\label{eq:SIcR_end}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This partitioning is also represented graphically in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:partitioning"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename partitioning.png
+	scale 30
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:partitioning"
+
+\end_inset
+
+A graphical representation of how an infected population might be partitioned
+ into different categories.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This 'partitioning' strategy is somewhat different than what one often sees
+ in a TSI model containing sub-classes of the infected population.
+ To our understanding, the more common treatment is to explicitly move the
+ infected population between different compartments while keeping track
+ of the 'time since arrival' in each compartment.
+ We prefer the partitioning scheme presented here for two reasons: First,
+ it eliminates the need for (and the influence of) artificially constructed
+ stages.
+ Second, and more importantly, it is a severe approximation to say that
+ the distribution of exit times from a present stage (e.g.
+ hospitalization) depends only on the time since arrival and not on the
+ time since infection.
+ In our approach, we note that since time since arrival depends on time
+ since infection, the overall entry/exit rates for hospitaization can be
+ exactly described as a function of time since infection with no approximations
+ necessary.
+\end_layout
+
+\begin_layout Standard
+For many compartment models (and indeed many TSI models as well) it is not
+ unusual to suppose that infectiousness of an individual depends on the
+ subclass or subclasses to which the individual has been assigned [REFS].
+ In that case, if each sub-class has a rate constant for infection 
+\begin_inset Formula $\beta_{\alpha}(s)$
+\end_inset
+
+ equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_begin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ would look like:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-\sum_{\alpha}\int_{0}^{T}ds\frac{\beta_{\alpha}(s)}{N}I^{\alpha}(t,s)S\label{eq:SIcR_w_subclasses}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In our construction of a TSI model, however, explicitly evaluating the summation
+ is unnecessary – we have already stated that 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ is the mean infectiousness of the infected class at time since infection
+ 
+\begin_inset Formula $s$
+\end_inset
+
+.
+ In other words, equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_w_subclasses"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is equivalent to equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_begin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ when the mean value 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ is correctly defined as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\beta(s)=\sum_{\alpha}\Phi^{\alpha}(s)\beta_{\alpha}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For the analysis in this report, we will only present calculations for two
+ subclasses of infecteds – those who are within the infectious range and
+ those who are not.
+ We will refer to the latter group as 'recovered' with population 
+\begin_inset Formula $R$
+\end_inset
+
+, and 
+\begin_inset Formula $\Phi_{R}(s)$
+\end_inset
+
+ is just a step function at 
+\begin_inset Formula $s=T$
+\end_inset
+
+.
+ Taking a time derivative of equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_end"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, this can also be written as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=I(t,T)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Or, more generally, given 
+\begin_inset Formula $\phi^{\alpha}(s)=d\Phi^{\alpha}/ds$
+\end_inset
+
+ the population in any subclass of infecteds evolves by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI^{\alpha}}{dt}=\int_{0}^{T}ds\phi^{\alpha}(s)I(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In general, one can choose any number of subclasses with arbitrarily complex
+ shapes for each 
+\begin_inset Formula $\Phi_{\alpha}(s)$
+\end_inset
+
+ with minimal added cost for obtaining solutions numerically (provided one
+ chooses an appropriate numerical method).
+ We refer to equations 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_begin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ - 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_end"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ as the TSI model.
+ Equations for an age-structured generalization of this TSI model are provided
+ in the appendix.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Additional Remarks on Partitioning the Infecteds
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+In equations 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_begin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ - 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_end"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, it was assumed that the functions 
+\begin_inset Formula $\Phi^{\alpha}$
+\end_inset
+
+ partitioning the infecteds depend on time since infection but not on time
+ itself.
+ This approximation works well for modelling subclasses whose populations
+ reflect the nature of the disease itself (like hospitalizations and fatalities)
+, but it is less suited to subclasses whose populations reflect a behavioral
+ or societal response to the disease.
+ Consider a system in which quarrantines are assigned by a track-and-trace
+ progam – the probability of being under quarantine at time since infection
+ 
+\begin_inset Formula $s$
+\end_inset
+
+ depends on the history of testing to that point and not necessarily on
+ the current state of testing.
+ Therefore, in the most general case one can write a dynamical equation:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial\Phi^{\alpha}}{\partial t}+\frac{\partial\Phi^{\alpha}}{\partial s}=\phi_{in}^{\alpha}(t,s)-\phi_{out}^{\alpha}(t,s)\label{eq:Phi_all}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $\phi_{in}^{\alpha}(t,s)$
+\end_inset
+
+ and 
+\begin_inset Formula $\phi_{out}^{\alpha}(t,s)$
+\end_inset
+
+ are the probability density for moving in/out of subclass 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ at time 
+\begin_inset Formula $t$
+\end_inset
+
+ and time since infection s.
+ Note, however, that if the criterion for moving people in and out of subclass
+ 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ are changing on timescales that are slow compared to the typical residence
+ time for subclass 
+\begin_inset Formula $\alpha$
+\end_inset
+
+, then to leading order one can apply a quasi-static approximation for which
+ equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Phi_all"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ reverts to:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\Phi^{\alpha}(t,s)=\int_{0}^{s}ds'\phi^{\alpha}(t,s')
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\phi^{\alpha}(t,s)=\phi_{in}^{\alpha}(t,s)-\phi_{out}^{\alpha}(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and hence equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:SIcR_end"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ becomes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI^{\alpha}}{dt}=\int_{0}^{T}ds\phi^{\alpha}(t,s)I(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, while the underlying probability density functions 
+\begin_inset Formula $\phi^{\alpha}(t,s)$
+\end_inset
+
+ can be obtained from track-and-trace data, we have found that the available
+ data is not sufficiently detailed to precisely specify all necessary inputs
+ to a time since infection model.
+ To that end, we suggest that the probability density functions can be approxima
+ted as beta distributions:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\phi_{in}^{\alpha}(s)=p_{in}^{\alpha}\frac{1}{T}\frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\Big(\frac{s}{T}\Big)^{1-a}\Big(1-\frac{s}{T}\Big)^{1-b}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where 
+\begin_inset Formula $p_{in}^{\alpha}$
+\end_inset
+
+ is the probability that an infected person is ever assigned to subclass
+ 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ and the 'shape' of the distirubiton is defined by parameters 
+\begin_inset Formula $a$
+\end_inset
+
+ and 
+\begin_inset Formula $b$
+\end_inset
+
+.
+ The same parameterization can be done for each 
+\begin_inset Formula $\phi_{out}^{\alpha}$
+\end_inset
+
+ as well.
+ Finally, the shape parameters 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ and 
+\begin_inset Formula $\beta$
+\end_inset
+
+ can be explicitly related to the mean 
+\begin_inset Formula $\bar{x}$
+\end_inset
+
+ and variance 
+\begin_inset Formula $v$
+\end_inset
+
+ of the distribution:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+a=\frac{\bar{x}^{2}(1-\bar{x})}{v}-\bar{x}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+b=\Big(\frac{\bar{x}(1-\bar{x})}{v}-1\Big)(1-\bar{x})
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This same parameterization strategy also applies to the rate constant for
+ infection, 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+, which is itself a probability density function for transmitting the disease
+ at time since infection 
+\begin_inset Formula $s$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Nondimensionalization
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Before proceeding further, it is helpful to recast the governing equations
+ into dimensionless form.
+ We rescale 
+\begin_inset Formula $S$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+ by the total population 
+\begin_inset Formula $N$
+\end_inset
+
+, such that 
+\begin_inset Formula $\tilde{S}=S/N$
+\end_inset
+
+ and 
+\begin_inset Formula $\tilde{R}=R/N$
+\end_inset
+
+.
+ Using a characteristic time 
+\begin_inset Formula $T_{C}=T/2$
+\end_inset
+
+, we rescale time as 
+\begin_inset Formula $\tilde{t}=t/T_{C}$
+\end_inset
+
+ and number density of infecteds as 
+\begin_inset Formula $\tilde{I}=IT_{C}/N$
+\end_inset
+
+.
+ The time since infection is rescaled to the variable 
+\begin_inset Formula $\tilde{s}=s/T_{C}-1$
+\end_inset
+
+ so that the range 
+\begin_inset Formula $s\in[0,T]$
+\end_inset
+
+ is mapped to 
+\begin_inset Formula $\tilde{s}\in[-1,1]$
+\end_inset
+
+.
+ Given the reproduction number 
+\begin_inset Formula $R_{0}=\int_{0}^{T}\beta(s)ds$
+\end_inset
+
+ we rescale 
+\begin_inset Formula $\tilde{\beta}=βT_{C}/R_{\ensuremath{0}}$
+\end_inset
+
+ so that 
+\begin_inset Formula $\int_{-1}^{1}d\tilde{s}\tilde{\beta}(\tilde{s})=1$
+\end_inset
+
+, and we rescale all 
+\begin_inset Formula $\tilde{\phi}_{\alpha}=\phi_{\alpha}T_{C}$
+\end_inset
+
+ in the same way so that 
+\begin_inset Formula $\int_{-1}^{1}d\tilde{s}\tilde{\phi}_{\alpha}(\tilde{s})=p_{\alpha}$
+\end_inset
+
+, where 
+\begin_inset Formula $p_{\alpha}$
+\end_inset
+
+ is the probability that 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ is the final state (e.g.
+ recovered, deceased, etc) for an infected person.
+\end_layout
+
+\begin_layout Standard
+For compactness of notation, we will suppress tildes in our dimensionless
+ variables – from this point forward, all variables are dimensionless unless
+ otherwise stated.
+ The dimensionless governing equations of the TSI model with time since
+ infection are given by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-R_{0}S\int_{-1}^{1}ds\beta(s)I(t,s)\label{eq:ndim_begin}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial t}I(t,s)+\frac{\partial}{\partial s}I(t,s)=0\label{eq:ndim_I}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I(t,-1)=R_{0}S\int_{-1}^{1}ds\beta(s)I(t,s)\label{eq:ndim_bc}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=I(t,1)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+These equations can be solved by any number of means.
+ In the section that follows, we will present three discretization stategies
+ for numerical solution.
+ First, we show that existing multi-stage models can be derived using a
+ particularly inefficient method-of-lines discretization.
+ Second, we show that with a few small changes the accuracy of the standard
+ multi-stage model can be improved dramatically at a small cost – time-stepping
+ is inflexible.
+ Finally, for both spectral accuracy in 
+\begin_inset Formula $s$
+\end_inset
+
+ and flexible time-stepping in 
+\begin_inset Formula $t$
+\end_inset
+
+, we present a novel discretization based on a Galerkin approximation.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:SIkR"
+
+\end_inset
+
+Method of Lines: the SIkR model
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+The PDE can be converted to an approximate ODE representation via the method
+ of lines.
+ Here, we discretize 
+\begin_inset Formula $s$
+\end_inset
+
+ in uniform intervals of width 
+\begin_inset Formula $h$
+\end_inset
+
+ and represent advection/integration in 
+\begin_inset Formula $s$
+\end_inset
+
+ via upwinding and right Riemann sums, respectively.
+ These methods are robust but generally poor performing, with accuracy 
+\begin_inset Formula $O(h)$
+\end_inset
+
+ -- about as bad as any stable numerical scheme can be.
+ We will show that this choice of discretization maps the TSI model to the
+ standard multi-stage generalization of SIR model 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-13"
+literal "false"
+
+\end_inset
+
+.
+ Details about the truncation errors introduced by this particular choice
+ of discretization will be discussed shortly.
+\end_layout
+
+\begin_layout Standard
+We evaluate the solution at discrete points 
+\begin_inset Formula $s_{1},s_{2},…,s_{N}$
+\end_inset
+
+ where 
+\begin_inset Formula $s_{n}=-1+(n-1)h$
+\end_inset
+
+ and 
+\begin_inset Formula $h=2/(N-1)$
+\end_inset
+
+.
+ In this section, we denote 
+\begin_inset Formula $I_{n}$
+\end_inset
+
+ as the number density of infected persons at each 
+\begin_inset Formula $s_{n}$
+\end_inset
+
+ and 
+\begin_inset Formula $β_{n}\sim hβ(s_{n})$
+\end_inset
+
+.
+ For best results, the value of 
+\begin_inset Formula $\beta_{n}$
+\end_inset
+
+ should be re-scaled so that the right Riemann sum approximation still evaluates
+ to unity: 
+\begin_inset Formula $\sum_{n=2}^{N}\beta_{n}=1$
+\end_inset
+
+.
+ Applying this discretization scheme to the PDE equations, we obtain evolution
+ equations for 
+\begin_inset Formula $S,I_{n},$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-R_{0}S\sum_{n=2}^{N}\beta_{n}I_{n}\label{eq:S_SIkr}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{1}=R_{0}S\sum_{n=2}^{N}\beta_{n}I_{n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI_{n}}{dt}=\frac{1}{h}(I_{n-1}-I_{n})
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=I_{N}\label{eq:R_SIkR}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Recall, however, that equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:R_SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ applies to the special case where a person recovers only after aging beyond
+ the maximum infectious period, 
+\begin_inset Formula $\phi_{R}(s)=\delta(s-1)$
+\end_inset
+
+.
+ For more realistic versions of 
+\begin_inset Formula $\phi_{R}(s)$
+\end_inset
+
+, equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:R_SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ becomes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=\sum_{n=2}^{N}\phi_{R,n}I_{n}\label{eq:R_SIkR_general}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\phi_{R,n}\sim h\phi_{R}(s_{n})
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For best results, the value of 
+\begin_inset Formula $\phi_{R,n}$
+\end_inset
+
+ should be re-scaled so that the right Riemann integral still evaluates
+ to one, 
+\begin_inset Formula $\sum_{n=2}^{N}\phi_{R,n}=1$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Equations 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:S_SIkr"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ - 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:R_SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ map exactly to the SIR model when 
+\begin_inset Formula $N=2$
+\end_inset
+
+ or to a multi-stage SIkR model with 
+\begin_inset Formula $k=N-1$
+\end_inset
+
+ stages more generally.
+ Therefore, we confirm that in the limit of 
+\begin_inset Formula $h→0$
+\end_inset
+
+, the SIkR model is equivalent to a true time-since infection model.
+ In practice, however, the convergence is so slow that truncation errors
+ will have a large influence on the predictions.
+ Therefore, we discuss the truncation errors introduced by this scheme and
+ how they systematically influence the resulting predictions.
+\end_layout
+
+\begin_layout Standard
+First, we consider truncation error when integrating over s using a left
+ Riemann sum.
+ Assuming 
+\begin_inset Formula $β_{n}=β_{0}$
+\end_inset
+
+ for all n, the right Riemann sum will under/over estimate the infectivity
+ of the infected class during the rising/falling of the epidemic by 
+\begin_inset Formula $O(h)$
+\end_inset
+
+.
+ Next, upwinding to approximate derivatives in 
+\begin_inset Formula $s$
+\end_inset
+
+ introduces numerical diffusion, meaning that the numerical solution behaves
+ like a PDE model to which an additional diffusion term has been added:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial t}I(t,s)+\frac{\partial}{\partial s}I(t,s)=D\frac{\partial^{2}}{\partial s^{2}}I(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the numerical diffusion coefficient 
+\begin_inset Formula $D$
+\end_inset
+
+ scales as 
+\begin_inset Formula $D\sim O(h)$
+\end_inset
+
+.
+ Thus, the upwinding scheme tends to smear out the distribution of infection
+ times.
+ This error is less important if 
+\begin_inset Formula $β(s)$
+\end_inset
+
+ is constant, but in general the resulting numerical diffusion will tend
+ to over-estimate the number of late/early stage infected during the rising/fall
+ing of the epidemic by 
+\begin_inset Formula $O(h)$
+\end_inset
+
+.
+ Numerical diffusion can be eliminated if the discretized ODE problem is
+ integrated via forward Euler with a time-step of exactly 
+\begin_inset Formula $h$
+\end_inset
+
+ – this moves the truncation error from the 
+\begin_inset Formula $s-$
+\end_inset
+
+domain into the 
+\begin_inset Formula $t-$
+\end_inset
+
+domain, but it keeps the overall error at 
+\begin_inset Formula $O(h)$
+\end_inset
+
+ and allows for faster calculation.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:PC"
+
+\end_inset
+
+Method of Lines: Predictor/Corrector
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+In the preceding section, we showed that the SIkR model is an approximation
+ of a TSI model with first order accuracy, 
+\begin_inset Formula $O(h)$
+\end_inset
+
+.
+ The accuracy can be improved to second order 
+\begin_inset Formula $O(h^{2})$
+\end_inset
+
+ with a few small modifications.
+ We use a trapezoid rule (as opposed to a Riemann sum) for quadrature and
+ a predictor-corrector midpoint rule for evolving the susceptible and recovered
+ populations.
+ The infected population (with the exception of newly infecteds) are upwinded
+ with a Courant number of one to eliminate numerical diffusion.
+ The principle disadvantage of this method is that time-stepping is inflexible.
+\end_layout
+
+\begin_layout Standard
+We evaluate the solution at discrete 
+\begin_inset Formula $s_{1},s_{2},s_{3}…,s_{N}$
+\end_inset
+
+ where 
+\begin_inset Formula $s_{n}=-1+(n-1)h$
+\end_inset
+
+ and 
+\begin_inset Formula $h=2/(N-1)$
+\end_inset
+
+ and also at discrete times 
+\begin_inset Formula $t^{(k)}=kh$
+\end_inset
+
+ for integer 
+\begin_inset Formula $k$
+\end_inset
+
+.
+ We denote 
+\begin_inset Formula $I_{n}$
+\end_inset
+
+ as the number density of infected persons at each 
+\begin_inset Formula $s_{n}$
+\end_inset
+
+ and 
+\begin_inset Formula $β_{n}\sim hβ(s_{n})$
+\end_inset
+
+ for 
+\begin_inset Formula $n\neq0,N$
+\end_inset
+
+ and 
+\begin_inset Formula $\beta_{n}\sim h\beta(s_{n})/2$
+\end_inset
+
+ for 
+\begin_inset Formula $n=0,N$
+\end_inset
+
+.
+ As in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, for best results the value of 
+\begin_inset Formula $\beta_{n}$
+\end_inset
+
+ should be re-scaled so that 
+\begin_inset Formula $\sum_{n=1}^{N}\beta_{n}=1$
+\end_inset
+
+.
+ The time-step 
+\begin_inset Formula $k=0,1,2,...$
+\end_inset
+
+ will be indicated as a superscript in parentheticals, e.g.
+ 
+\begin_inset Formula $S^{(k)}$
+\end_inset
+
+is the susceptible population at time 
+\begin_inset Formula $t^{(k)}$
+\end_inset
+
+.
+ In the language of a predictor/corrector method, intermediate predictions
+ will be further denoted by the letter 
+\begin_inset Formula $p$
+\end_inset
+
+ inside the parenthetical, e.g.
+ 
+\begin_inset Formula $S^{(k+1,p)}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Beginning from time 
+\begin_inset Formula $t^{(k)}$
+\end_inset
+
+, we can calculate the state of the system at time 
+\begin_inset Formula $t^{(k+1)}=t^{(k)}+h$
+\end_inset
+
+ as follows.
+ We begin with an explicit prediction step:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\Delta S^{(k)}=h\Bigg[-R_{0}S^{(k)}\sum_{n=1}^{N}\beta_{n}I_{n}^{(k)}\Bigg]
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+S^{(k+1,p)}=S^{(k)}+\Delta S^{(k)}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{1}^{(k+1,p)}=-\Delta S^{(k)}/h
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{n>1}^{(k+1,p)}=I_{n-1}^{(k)}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then, we proceed to the correction:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\Delta S^{(k+1,p)}=h\Bigg[-R_{0}S^{(k+1,p)}\sum_{n=1}^{N}\beta_{n}I_{n}^{(k+1,p)}\Bigg]
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+S^{(k+1)}=S^{(k)}+\frac{1}{2}\Big(\Delta S^{(k)}+\Delta S^{(k+1,p)}\Big)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{1}^{(k+1)}=-\Delta S^{(k+1,p)}/h
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{n>1}^{(k+1)}=I_{n}^{(k+1,p)}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+R^{(k+1)}=R^{(k)}+\frac{h}{2}\Big(I_{N}^{(k)}+I_{N}^{(k+1)}\Big)\label{eq:R_PC}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Once again, equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:R_PC"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ applies to the special case where a person recovers only after aging beyond
+ the maximum infectious period, 
+\begin_inset Formula $\phi_{R}(s)=\delta(s-1)$
+\end_inset
+
+.
+ For more realistic versions of 
+\begin_inset Formula $\phi_{R}(s)$
+\end_inset
+
+, equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:R_PC"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ becomes:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+R^{(k+1)}=R^{(k)}+\frac{h}{2}\sum_{n=1}^{N}\phi_{R,n}\Big(I_{N}^{(k)}+I_{N}^{(k+1)}\Big)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\phi_{R,n}\sim\begin{cases}
+h\phi_{R}(s_{n})/2 & \text{if }n=1\text{ or }n=N\\
+h\phi_{R}(s_{n}) & \text{otherwise}
+\end{cases}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\sum_{n=1}^{N}\phi_{R,n}=1
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This method has second order accuracy 
+\begin_inset Formula $O(h^{2})$
+\end_inset
+
+, so compared to the SIkR model one needs only a few stages to obtain good
+ results.
+ The principle weakness of this method is that time-stepping is inflexible
+ – each time step must advance the solution forward by a time of exactly
+ 
+\begin_inset Formula $h$
+\end_inset
+
+.
+ Note also that for numerical stability, the time-step 
+\begin_inset Formula $h$
+\end_inset
+
+ must be chosen to be sufficiently small (e.g.
+ 
+\begin_inset Formula $h(R_{0}-1)<1$
+\end_inset
+
+).
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:Galerkin"
+
+\end_inset
+
+Expansion in Legendre Polynomials (Galerkin)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+For spectral accuracy in 
+\begin_inset Formula $s$
+\end_inset
+
+ and flexible time-stepping, we provide a discretization based on a Galerkin
+ approximation.
+ On the interval 
+\begin_inset Formula $s\in[-1,1]$
+\end_inset
+
+, we can write 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+ as weighted sum of Legendre polynomials:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I(t,s)=\sum_{n=0}^{\infty}I_{n}(t)P_{n}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Any set of orthogonal basis functions could be used for this purpose, but
+ we have found that Legendre polynomials work particularly well in this
+ application.
+ If we truncate the sum after 
+\begin_inset Formula $m+1$
+\end_inset
+
+ terms and insert into the governing equations, we obtain a closed system
+ of equations for 
+\begin_inset Formula $S,I_{0},I_{1},I_{2},…,I_{m},$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+.
+ This technique is known as a Galerkin approximation.
+\end_layout
+
+\begin_layout Standard
+The population of susceptibles evolves by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS}{dt}=-R_{0}S\sum_{n=0}^{m}a_{n}I_{n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where the coefficients 
+\begin_inset Formula $a_{n}$
+\end_inset
+
+are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+a_{n}=\int_{-1}^{1}ds\beta(s)P_{n}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For 
+\begin_inset Formula $n<m$
+\end_inset
+
+, we obtain evolution equations for the coefficients 
+\begin_inset Formula $I_{n}$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI_{n}}{dt}+\sum_{k=0}^{m}b_{nk}I_{k}=0
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+b_{nk}=\Bigg[\frac{2n+1}{2}\Bigg]\int_{-1}^{1}dsP_{n}(s)P'_{k}(s)=\begin{cases}
+2n+1 & \text{if }n+k\text{ is odd and }k>n\\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The highest order polynomial coefficient 
+\begin_inset Formula $I_{m}$
+\end_inset
+
+ is constrained by the boundary condition at 
+\begin_inset Formula $s=0$
+\end_inset
+
+ (c.f.
+ equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:ndim_bc"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+):
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\sum_{n=0}^{m}I_{n}(-1)^{n}=R_{0}S\sum_{n=0}^{m}a_{n}I_{n}\label{eq:Galerkin bc}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In practice, this constraint can sometimes be used to eliminate the highest
+ order Legendre polynomial coefficient, 
+\begin_inset Formula $I_{m}$
+\end_inset
+
+, as an independent variable.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{m}=[(-1)^{m}-R_{0}Sa_{m}]^{-1}\Bigg[SR_{0}\sum_{n=0}^{m-1}a_{n}I_{n}-\sum_{n=0}^{m-1}I_{n}(-1)^{n}\Bigg]\label{eq:Galerking_BC_explicit}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However, this trick of eliminating 
+\begin_inset Formula $I_{m}$
+\end_inset
+
+ only works when the reproduction number 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+ (or more generally, the contact matrix in an age-structured model) is not
+ varying in time.
+ In a later subsection, we will show that the boundary constraint must be
+ handled implicitly when the reproduciton number varies in time.
+ Implicit algebraic constraints can be costly during numerical integration,
+ so the predictor/corrector method may be preferred in these cases.
+\end_layout
+
+\begin_layout Standard
+Finally, we consider the growth dynamics for a recovered class:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR}{dt}=\sum_{n=0}^{m}\phi_{R,n}I_{n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\phi_{R,n}=\int_{-1}^{1}ds\phi_{R}(s)P_{n}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Galerkin discretization does offer spectral resolution in 
+\begin_inset Formula $s$
+\end_inset
+
+ and flexible time-stepping – both of which are improvements over the second-ord
+er accuracy and inflexible time-stepping of the predictor-corrector method.
+ However, as is often the case with spectral methods, the improvements in
+ accuracy come with costs regarding the robustness of the method.
+ These costs will be discussed in more detail in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Galerkin_problems"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Sample Results: Simple Calculations
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch sections
+inverted 0
+status collapsed
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+In this section, we will provide sample calculations for each of the discretizat
+ion schemes given in the preceding sections.
+ In each case, we will solve for the growth dynamics of a system with 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+ and 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+.
+ We also consider non-trivial recovery dynamics, 
+\begin_inset Formula $\phi_{R}(s)=(1+s)^{4}(1-s)$
+\end_inset
+
+.
+ This choice of input parameters is intended for proof-of-concept calculations
+ only and does not purport to represent the dynamics of any particular disease.
+ For an initial condition, we seed with a small infected population distributed
+ in 
+\begin_inset Formula $s$
+\end_inset
+
+ to follow the fastest growing linear mode.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Linear Growth
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+To find the fastest growing linear mode, we return to the PDE formulation
+ of the model.
+ From equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:ndim_I"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ we find:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I(t,s)=I_{0}\exp(\lambda(t-s))
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with growth rate 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ and density of recent infecteds 
+\begin_inset Formula $I_{0}\ll1$
+\end_inset
+
+.
+ From the boundary condition at 
+\begin_inset Formula $s=-1$
+\end_inset
+
+ we also have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I(t,-1)=I_{0}\exp(\lambda(t+1))
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This gives an implicit relationship between the growth rate 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ and the reproduction number 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+ and 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ that can be solved numerically:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{1}{R_{0}S}=\int_{-1}^{1}\beta(s)\exp(-\lambda(s+1))ds\label{eq:eigenvalue_equation}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Thus, we see that the growth rate 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ (in units of 
+\begin_inset Formula $2/T$
+\end_inset
+
+) is not uniquely determined by the reproduction number 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+ but also depends on how the infectiousness of a disease rises and falls
+ over time within the infectious period.
+ In this section, all simulations begin from an initial condition that approxima
+tes the fastest growing linear mode, 
+\begin_inset Formula $I(0,s)=10^{-3}\exp(-\lambda s)$
+\end_inset
+
+.
+ Analysis of linear growth dynamics for an age-structured version of the
+ TSI model are provided in the appendix to the present report.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:Nonlinear-Dynamics"
+
+\end_inset
+
+Nonlinear Dynamics
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+First, we consider the SIkR discretization, per section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:SIkR_example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we see that there is noticeable error for small values of 
+\begin_inset Formula $N\leq6$
+\end_inset
+
+ and trends for convergence are not evident between 
+\begin_inset Formula $N=4$
+\end_inset
+
+ and 
+\begin_inset Formula $N=6$
+\end_inset
+
+.
+ The convergence of the SIkR discretization is just 
+\begin_inset Formula $O(h)$
+\end_inset
+
+, so it is not surprising that the model performs so poorly here.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename SIkR_convergence.eps
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:SIkR_example"
+
+\end_inset
+
+Showing convergence of SIkR calculations with 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+, 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+, and 
+\begin_inset Formula $\phi_{R}(s)=(1+s)^{4}(1-s)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Next, we consider the predictor/corrector (PC) discretization, per section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:PC"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:PC_example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we see that the absolute error at small 
+\begin_inset Formula $N$
+\end_inset
+
+ happens to be larger in this case, but the trends for convergence are clear,
+ and the PC method will vastly out-perform the SIkR method for slightly
+ larger values of 
+\begin_inset Formula $N$
+\end_inset
+
+.
+ Note also that the PC method takes large time steps, so the cost to implement
+ a larger value of 
+\begin_inset Formula $N$
+\end_inset
+
+ is still very good by comparison.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename PC_convergence_fig.eps
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:PC_example"
+
+\end_inset
+
+Showing convergence of predictor/corrector calculations with 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+, 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+, and 
+\begin_inset Formula $\phi_{R}(s)=(1+s)^{4}(1-s)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, we consider the Galerkin discretization, per section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Galerkin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Galerkin_example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we see that the calculations are essentially converged to the thickness
+ of the line shown with just 
+\begin_inset Formula $m+1=4$
+\end_inset
+
+ modes (corresponding to 
+\begin_inset Formula $m=3$
+\end_inset
+
+ independent modes using equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Galerking_BC_explicit"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ to eliminate the highest order Legendre polynomial coefficient).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename Galerkin_convergence_fig.eps
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Galerkin_example"
+
+\end_inset
+
+Showing convergence of calculations with the Galerkin model for 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+, 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+, and 
+\begin_inset Formula $\phi_{R}(s)=(1+s)^{4}(1-s)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this specific application, it is clear that the Galerkin method vastly
+ out-performs the predictor/corrector and SIkR discretization strategies.
+ This should not be too surprising, since the Galerkin discretization provides
+ spectral accuracy in 
+\begin_inset Formula $s$
+\end_inset
+
+.
+ However, as mentioned in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Galerkin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, the accuracy of the Galerkin method also makes it less robust in certain
+ applications.
+ In the following section, we discuss common problems that one might encounter
+ with the Galerkin method.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Galerkin_problems"
+
+\end_inset
+
+When to avoid Galerkin
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Considering the Galerkin method, the dramatic improvements in accuracy come
+ at a cost in the robustness of the method.
+ In this section, we will discuss problems that the Galerkin method has
+ with (1) abrupt changes in 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+, (2) smooth changes in 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+, and (3) arbitrarily chosen initial conditions.
+\end_layout
+
+\begin_layout Standard
+For the first two, we must explain what it means to think about abrupt/smooth
+ changes in 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+.
+ To this point, we have described the reproduction number as a dimensionless
+ constant, but in this section we will allow it to be a function of time,
+ 
+\begin_inset Formula $R_{0}=R_{0}(t)$
+\end_inset
+
+, as though the underlying dynamics of transmission were also subject to
+ some time-dependent modulation 
+\begin_inset Formula $\beta(t,s)=u(t)\beta(s)$
+\end_inset
+
+.
+ Physically, this construction might be useful for describing changes in
+ non-pharmaceutical interventions (e.g.
+ social distancing, lockdowns, etc.) or the inherent seasonality of an epidemic.
+\end_layout
+
+\begin_layout Standard
+If there are step-wise changes or 'kinks' in 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ at some time 
+\begin_inset Formula $t_{0}$
+\end_inset
+
+, then the distribution of infecteds 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+ within the infectious range 
+\begin_inset Formula $s\in[-1,1]$
+\end_inset
+
+ will also be non-smooth for all times 
+\begin_inset Formula $t\in[t_{0},t_{0}+2]$
+\end_inset
+
+.
+ Spectral methods (including those based on Legendre Polynomials) are less
+ accurate when representing non-smooth functions, so the Galerkin discretization
+ will sometimes perform poorly following non-smooth dynamics in 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ – but sometimes it appears to work just fine.
+ As an example, we replicate the calculations of the preceding section but
+ impose 
+\begin_inset Formula $R_{0}(t>3)=1$
+\end_inset
+
+.
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Galerkin_vs_PC_lockdown"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we compare the converged solution from the PC method with the Galerkin
+ result for 
+\begin_inset Formula $m+1=4$
+\end_inset
+
+.
+ In this case, the Galerkin method is not as good as it was in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Galerkin_example"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, but overall it still appears to match the converged solution very well.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename Galerkin_vs_PC_lockdown.eps
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Galerkin_vs_PC_lockdown"
+
+\end_inset
+
+ Comparing converged predictions of the PC method with predictions from
+ the Galerkin method, 
+\begin_inset Formula $m+1=4$
+\end_inset
+
+ when there are abrupt changes in the reproduction number.
+ Here, we consider 
+\begin_inset Formula $R_{0}(t<3)=2,$
+\end_inset
+
+
+\begin_inset Formula $R_{0}(t>3)=1,$
+\end_inset
+
+ 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+, and 
+\begin_inset Formula $\phi_{R}(s)=(1+s)^{4}(1-s)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The quality of agreement found in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Galerkin_vs_PC_lockdown"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is perhaps partially attributed to the smooth choice of functions 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ and 
+\begin_inset Formula $\phi_{R}(s)$
+\end_inset
+
+.
+ If we instead choose 
+\begin_inset Formula $\phi_{R}(s)=\delta(s-1)$
+\end_inset
+
+, we find that shortly after the change in 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+, the recovered population temporarily decreases – a result that is clearly
+ non-physical.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename Galerkin_vs_PC_lockdown_2.eps
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Galerkin_vs_PC_lockdown-1"
+
+\end_inset
+
+ Comparing converged predictions of the PC method with predictions from
+ the Galerkin method, 
+\begin_inset Formula $m+1=4$
+\end_inset
+
+ when there are abrupt changes in the reproduction number and a non-smooth
+ 
+\begin_inset Formula $\phi_{R}(s)$
+\end_inset
+
+.
+ Here, we consider 
+\begin_inset Formula $R_{0}(t<3)=2,$
+\end_inset
+
+
+\begin_inset Formula $R_{0}(t>3)=1,$
+\end_inset
+
+ 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4}$
+\end_inset
+
+, and 
+\begin_inset Formula $\phi_{R}(s)=\delta(s-1)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As a matter of best practice, one may want to consider using other methods
+ whenever 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ is non-smooth – for example, it might be better to use the PC method for
+ the short interval 
+\begin_inset Formula $t\in[t_{0},t_{0}+2]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+A similar problem also emerges whenever one attempts to apply an arbitrary
+ choice of initial condition.
+ The initial condition contains a history of infections going back to time
+ 
+\begin_inset Formula $t=-2$
+\end_inset
+
+.
+ If the choice of initial condition is not consistent with the same constant
+ value of 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+ that is applied for 
+\begin_inset Formula $t>0$
+\end_inset
+
+, the distribution of infecteds 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+ within the infectious range 
+\begin_inset Formula $s\in[-1,1]$
+\end_inset
+
+ will be non-smooth until time 
+\begin_inset Formula $t=2$
+\end_inset
+
+.
+ It is for this reason that the starting condition for all the simulations
+ in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Nonlinear-Dynamics"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ was chosen to be aligned with the fastest growing linear mode.
+ As a matter of best practice, when applying an arbitrary initial condition
+ we suggest using the PC method to integrate to time 
+\begin_inset Formula $t=2$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+However, even with a good choice of initial conditions and a smoothly varying
+ 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+, there are potential limitations to the Galerkin method.
+ In any TSI method (including PC and SIkR), one must always be sure that
+ the numerical method has sufficient resolution to capture the unsteady
+ behavior in 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+: when 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ is varying on timescales that are fast compared to the infection period,
+ a higher number of modes will be needed to capture that variation.
+ For example, if the reproduction number is changing hour-by-hour and the
+ infectious period is several weeks, one will need hundreds or thousands
+ of modes to capture all the effects of a time-varying reproduction number.
+ Fortunately, whenever the reproduction number varies on such fast time-scales,
+ one can often use a smoothed out approximation (e.g.
+ moving average) to obtain very similar results in the trajectories for
+ 
+\begin_inset Formula $S$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+ with a much smaller number of modes.
+ In Figure XX, we compare converged predictions for 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+ and 
+\begin_inset Formula $R_{0}=2+\sin(2\pi t)$
+\end_inset
+
+ with the same values of 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ and 
+\begin_inset Formula $\phi_{R}(s)=\delta(s-1)$
+\end_inset
+
+.
+ The unsteady reproduction number requires substantially more modes (
+\begin_inset Formula $m+1\approx16$
+\end_inset
+
+) for convergence, and unphysical results (c.f.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Galerkin_vs_PC_lockdown-1"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) are seen when too few modes are present.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename oscillatory vs steady.eps
+	scale 60
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:steady vs unsteady R0=2"
+
+\end_inset
+
+Comparing converged predictions for the TSI model with constant reproduction
+ number 
+\begin_inset Formula $R_{0}=2.5$
+\end_inset
+
+ (solid lines) with a time-varying reproduction number 
+\begin_inset Formula $R_{0}=2.5(1+.5\sin(2πt))$
+\end_inset
+
+.
+ The large oscillations in 
+\begin_inset Formula $R_{0}$
+\end_inset
+
+ only translate to a small oscillation about the solution obtained with
+ a constant reproduction number of the same mean value 
+\begin_inset Formula $R_{0}=2.5$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Finally, whenever the reproduction number is varying in time – on any timescale
+ – we have empirically found that there are minor problems with finding
+ an approximation to 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+ that approximately preserves the property 
+\begin_inset Formula $I(t,s)=I(t-s,0)$
+\end_inset
+
+ whenever the boundary condition 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Galerkin bc"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is handled explicitly per equation 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Galerking_BC_explicit"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ Fortunately, we have not yet found an example in which this particular
+ difficulty in describing 
+\begin_inset Formula $I(t,s)$
+\end_inset
+
+ leads to measurable errors in the trajectories for 
+\begin_inset Formula $S$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+.
+ Whatever the underlying issue here may be, we have found that it is absolved
+ when the boundary condition 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:Galerkin bc"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ is handled implicitly, but this will often make implementation of the Galerkin
+ method much more computationally expensive.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Sample Results: Optimal Control
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+A principal motivation of the present report is to develop numerical methods
+ for TSI models that are computationally tractable for solving complex problems
+ in the fight against infectious diseases.
+ The example calculations given in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Nonlinear-Dynamics"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ are very simple and could easily done with pre-existing methods.
+ Therefore, in this section we will provide proof-of-concept results for
+ optimal control caclulations – calculations that (to our knowledge) have
+ not yet been reported for a TSI model.
+\end_layout
+
+\begin_layout Standard
+Here, we use the same model parameters as in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Nonlinear-Dynamics"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, but we consider a time-dependent 
+\begin_inset Formula $R_{0}(t)=u(t)R_{0}$
+\end_inset
+
+, where 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ is a control function that modulates the effective reproduction number.
+ This control function could describe non-pharmaceutical interventions such
+ as social distancing.
+ For simplicity, we choose to describe the control function 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ as a piece-wise linear interpolation between a set of 
+\begin_inset Formula $N_{u}$
+\end_inset
+
+ interpolation points.
+ Since this makes 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ non-smooth, we employ the PC method of section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:PC"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ to evolve the epidemic forward in time.
+ The position and value of the interpolation points are optimized using
+ the COBYLA algorithm in the optimization package 'nlopt'.
+ We also use the epidemic modelling package 'pyrossTSI' to solve the epidemic
+ model using the PC method with 
+\begin_inset Formula $N=16$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Optimal control calculations require a cost function, which we represent
+ as the sum of a social distancing costs and the cost of infections evaluated
+ on an interval 
+\begin_inset Formula $t\in[0,T_{f}]$
+\end_inset
+
+, with 
+\begin_inset Formula $T_{f}=$
+\end_inset
+
+35.
+ The cost of infections is given by the total number of infections 
+\begin_inset Formula $1-S$
+\end_inset
+
+ at the end time, and we assume the cost of modulating the reproduction
+ number at any time scales as 
+\begin_inset Formula $(1-u)^{2}S$
+\end_inset
+
+.
+ We use the parameter 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ as a constant of proportionality between these two costs so that the cotal
+ cost 
+\begin_inset Formula $C$
+\end_inset
+
+ is given by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+C=1-S(T_{f})+\Omega\int_{0}^{T_{f}}dt(1-u(t))^{2}S(t)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Large values of 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ will represent diseases that are not very deadly and/or costly to contain
+ (e.g.
+ the common cold), whereas small values of 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ describe epidemics that are more deadly and/or less costly to contain (e.g.
+ Ebola or MERS).
+ 
+\end_layout
+
+\begin_layout Standard
+Naievely, one might think that given a TSI model with a maximum infectious
+ period, the best control solution will always be to eliminate all transmission
+ for one infection period and lift all restrictions thereafter, giving a
+ cost 
+\begin_inset Formula $C=2\Omega$
+\end_inset
+
+.
+ However, this is not practical for diseases like the common cold, which
+ are not deadly enough to warrant such drastic measures.
+ For sufficiently large values of 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ one will always find that that the best option is to let the disease run
+ its course with targeted interventions that guide the system towards a
+ less costly 'herd immunity' state.
+ As an example, we present results for optimal control with 
+\begin_inset Formula $\Omega=0.3$
+\end_inset
+
+, for which a solution with 
+\begin_inset Formula $C=0.54<2\Omega$
+\end_inset
+
+ has been found.
+ The time-dependent 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ is shown in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:R0_optimal_control"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, and the resulting evolution of 
+\begin_inset Formula $S$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+ are shown in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:R0_optimal_control-1"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ Note that the interventions mostly occur after the epidemic has already
+ peaked (the inflection point in 
+\begin_inset Formula $S(t)$
+\end_inset
+
+).
+ This is because for large values of 
+\begin_inset Formula $\Omega,$
+\end_inset
+
+containing the disease is futile – the focus is not on preventing the epidemic
+ but on finding a less costly path to herd immunity.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename optimal_control_report.png
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:R0_optimal_control"
+
+\end_inset
+
+Optimal control solution (
+\begin_inset Formula $\Omega=0.3$
+\end_inset
+
+) for 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ in an epidemic with base reproduction number 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+, 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4},$
+\end_inset
+
+and 
+\begin_inset Formula $\phi_{R}(s)\sim(1+s)^{4}(1-s)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename optimal_control_report2.png
+	scale 60
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:R0_optimal_control-1"
+
+\end_inset
+
+Predictions for 
+\begin_inset Formula $S(t)$
+\end_inset
+
+ and 
+\begin_inset Formula $R(t)$
+\end_inset
+
+ under the optimal control solution (
+\begin_inset Formula $\Omega=0.3$
+\end_inset
+
+) for 
+\begin_inset Formula $R_{0}(t)$
+\end_inset
+
+ in an epidemic with base reproduction number 
+\begin_inset Formula $R_{0}=2$
+\end_inset
+
+, 
+\begin_inset Formula $\beta(s)\sim(1+s)(1-s)^{4},$
+\end_inset
+
+and 
+\begin_inset Formula $\phi_{R}(s)\sim(1+s)^{4}(1-s)$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Discussion and Conclusions
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Epidemic models are useful tools in the fight against infectious diseases,
+ but they are often forced to strike a balance between accuracy and complexity.
+ In the present work, we show that it is possible to retain a full 'time
+ since infection' model of disease transmission without making the model
+ much more difficult to solve from a numerics standpoint.
+ In particular, we present a novel 'Galerkin' discretization of a TSI model
+ with spectral accuracy.
+ We have discussed the advantages (accuracy with low modes) and disadvantages
+ (robustness under unsteady dynamics) of the Galerkin approximation, and
+ also provided proof-of-concept calculations for 'optimal control' using
+ a 'predictor/corrector' scheme.
+ The governing equations for an age-structured generalization of the model
+ are also given in the appendix.
+ At this point, it is our view that TSI models can now be considered for
+ a wide range of applications in which they were previously not considered
+ feasible.
+ The tools and methods described in the present report (including the age-struct
+ured version) are all freely available through the software package pyrossTSI.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-4"
+
+\end_inset
+
+L.
+ Sattenspiel and K.
+ Dietz, "A structured epidemic model incorporating geographic mobility among
+ regions," Mathematical biosciences, vol.
+ 128, no.
+ 1, pp.
+ 71 - 92, 1995.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-5"
+
+\end_inset
+
+F.
+ Hoppensteadt, "An age dependent epidemic model," Journal of the Franklin
+ Institute, vol.
+ 297, no.
+ 5, pp.
+ 325 - 333, 1974.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-6"
+
+\end_inset
+
+D.
+ Balcan, B.
+ Gonçalves, H.
+ Hu, J.
+ J.
+ Ramasco, V.
+ Colizza and A.
+ Vespignani, "Modeling the spatial spread of infectious diseases: The GLobal
+ Epidemic and Mobility computational model," Journal of computational science,
+ vol.
+ 1, no.
+ 3, pp.
+ 132 - 145, 2010.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-7"
+
+\end_inset
+
+S.
+ Busenberg, N.
+ Mimmo Iannelli and H.
+ R.
+ Thieme, "Global behavior of an age-structured epidemic model," SIAM Journal
+ on Mathematical Analysis, vol.
+ 22, no.
+ 4, pp.
+ 1065 - 1080, 1991.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-8"
+
+\end_inset
+
+W.
+ O.
+ Kermack and A.
+ G.
+ McKendrick, "A contribution to the mathematical theory of epidemics," Proceedin
+gs of the royal society of london.
+ Series A, Containing papers of a mathematical and physical character, vol.
+ 115, no.
+ 772, pp.
+ 700 - 721, 1927.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-9"
+
+\end_inset
+
+Diekmann, Odo and R.
+ Montijn, "Prelude to Hopf bifurcation in an epidemic model: analysis of
+ a characteristic equation associated with a nonlinear Volterra integral
+ equation," Journal of Mathematical Biology, vol.
+ 14, no.
+ 1, pp.
+ 117 - 127, 1982.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-10"
+
+\end_inset
+
+A.
+ Grant, "Dynamics of COVID‐19 epidemics: SEIR models underestimate peak
+ infection rates and overestimate epidemic duration," medRxiv, 2020.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-11"
+
+\end_inset
+
+O.
+ Krylova and D.
+ Earn, "Effects of the infectious period distribution on predicted transitions
+ in childhood disease dynamics," Journal of The Royal Society Interface,
+ vol.
+ 10, no.
+ 84, 2013.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-12"
+
+\end_inset
+
+A.
+ Murillo and J.
+ Alturo, "An epidemic model structured by the time since last infection,"
+ thesis, Purdue University, 2013.
+ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-13"
+
+\end_inset
+
+A.
+ Lloyd, "Realistic distributions of infectious periods in epidemic models:
+ changing patterns of persistence and dynamics," Theoretical population
+ biology, vol.
+ 60, no.
+ 1, pp.
+ 59 - 71, 2001.
+ 
+\end_layout
+
+\begin_layout Section
+\start_of_appendix
+Class-structured TSI model
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch sections
+inverted 0
+status collapsed
+
+\begin_layout Subsection
+Dimensional Governing Equations
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+In many cases, it is important to resolve predictions for how an epidemic
+ will spread through different sub-populations (e.g.
+ age, occupation, socioeconomic status, etc.).
+ If there are 
+\begin_inset Formula $C$
+\end_inset
+
+ classes in the population, we can denote population that is susceptible
+ and assigned to class 
+\begin_inset Formula $i=1,2,…,M$
+\end_inset
+
+ as 
+\begin_inset Formula $S_{i}$
+\end_inset
+
+.
+ Likewise, in this appendix the population that’s assigned to class 
+\begin_inset Formula $i$
+\end_inset
+
+ and was infected during the narrow interval of
+\begin_inset Formula $s\in[s,s+δs]$
+\end_inset
+
+ in the past is 
+\begin_inset Formula $I_{i}(t,s)δs$
+\end_inset
+
+, and the total population assigned to class 
+\begin_inset Formula $i$
+\end_inset
+
+ is 
+\begin_inset Formula $N_{i}$
+\end_inset
+
+.
+ The mean frequency of contact between members of class 
+\begin_inset Formula $i$
+\end_inset
+
+ and 
+\begin_inset Formula $j$
+\end_inset
+
+ is given by the quantity 
+\begin_inset Formula $C_{ij}/N_{j}$
+\end_inset
+
+, where 
+\begin_inset Formula $C_{ij}$
+\end_inset
+
+is referred to as the 'contact matrix'.
+ In the most general case, we allow each class 
+\begin_inset Formula $i$
+\end_inset
+
+ to have a different value of 
+\begin_inset Formula $\beta_{i}(s)$
+\end_inset
+
+.
+ The full PDE version 
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+The age compartments arise via a discretization of a more general PDE model
+ in which age is treated as a proper continuous variable.
+ Here, we have effectively employed a midpoint discretization of the full
+ age structure and also neglected the usual population dynamics (birth,
+ aging, and natural death) on the basis that the epidemic time is typically
+ much much shorter than the typical lifespan.
+\end_layout
+
+\end_inset
+
+ of the governing equations are given by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS_{i}}{dt}=-S_{i}\sum_{j=1}^{M}\frac{C_{ij}}{N_{j}}\int_{0}^{T}ds\beta_{j}(s)I_{j}(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial t}I_{i}(t,s)+\frac{\partial}{\partial s}I_{i}(t,s)=0
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{i}(t,0)=S_{i}\sum_{j=1}^{M}\frac{C_{ij}}{N_{j}}\int_{0}^{T}ds\beta_{j}(s)I_{j}(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Sub-classes of the infected population (e.g.
+ infectious, recovered, hosptialized, symptomatic, asymptomatic, etc.) can
+ be computed in the same manner as before.
+ For example, if we assume that all infecteds are classified as recovered
+ once their infection ages beyond time 
+\begin_inset Formula $T$
+\end_inset
+
+, then the fraction of the population that is recovered and assigned to
+ sub-class 
+\begin_inset Formula $i$
+\end_inset
+
+ evolves as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR_{i}}{dt}=I_{i}(t,T)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Dimensionless Governing Equations
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+As before, we prefer to work with the governing equations in a dimensionless
+ form.
+ We rescale 
+\begin_inset Formula $S_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $R_{i}$
+\end_inset
+
+ by the total population 
+\begin_inset Formula $N=\sum_{i}N_{i}$
+\end_inset
+
+, such that 
+\begin_inset Formula $\tilde{S_{i}}=S_{i}/N$
+\end_inset
+
+ and 
+\begin_inset Formula $\tilde{R_{i}}=R_{i}/N$
+\end_inset
+
+.
+ Using a characteristic time 
+\begin_inset Formula $T_{C}=T/2$
+\end_inset
+
+, we rescale time as 
+\begin_inset Formula $\tilde{t}=t/T_{C}$
+\end_inset
+
+ and number density of infecteds as 
+\begin_inset Formula $\tilde{I_{i}}=I_{i}C/N$
+\end_inset
+
+.
+ The time since infection is rescaled to the variable 
+\begin_inset Formula $\tilde{s}=s/T_{C}-1$
+\end_inset
+
+ so that the range 
+\begin_inset Formula $s\in[0,T]$
+\end_inset
+
+ is mapped to 
+\begin_inset Formula $\tilde{s}\in[-1,1]$
+\end_inset
+
+.
+ Finally, we define a class-specific reproduction number
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+R_{0,i}=\sum_{j=1}^{M}\frac{C_{ij}}{N_{j}}\int_{0}^{T}ds\beta_{j}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and a dimensionless matrix of rate constants that subsumes information about
+ the contact structure:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\tilde{\beta}_{ij}(s)=\frac{T_{C}}{R_{0,i}}\frac{C_{ij}}{N_{j}}\beta_{j}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Note that the matrix 
+\begin_inset Formula $\tilde{\beta}_{ij}$
+\end_inset
+
+ has the property:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\sum_{j=1}^{M}\int_{-1}^{1}d\tilde{s}\tilde{\beta}_{ij}(\tilde{s})=1
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For compactness of notation, we will suppress tildes in our dimensionless
+ variables – from this point forward, all variables are dimensionless unless
+ otherwise stated.
+ The dimensionless governing equations for the age-structured TSI model
+ are given by:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS_{i}}{dt}=-R_{0,i}S_{i}\sum_{j=1}^{M}\int_{-1}^{1}ds\beta_{ij}(s)I_{j}(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial t}I_{i}(t,s)+\frac{\partial}{\partial s}I_{i}(t,s)=0
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{i}(t,-1)=R_{0,i}S_{i}\sum_{j=1}^{M}\int_{-1}^{1}ds\beta_{ij}(s)I_{j}(t,s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR_{i}}{dt}=I_{i}(t,1)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As before, there are many valid discretizations of the PDE model but as
+ before we will focus on the Galerkin approximation and the method of lines.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Discretization: Method of Lines
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+Once again, we discretize 
+\begin_inset Formula $s$
+\end_inset
+
+ in uniform intervals of width 
+\begin_inset Formula $h$
+\end_inset
+
+ and represent advection/integration in 
+\begin_inset Formula $s$
+\end_inset
+
+ via upwinding and left Riemann sums, respectively.
+ We evaluate the solution at discrete points in s, evaluating at 
+\begin_inset Formula $s_{1},s_{2},s_{3}…,s_{N}$
+\end_inset
+
+ where 
+\begin_inset Formula $s_{n}=-1+(n-1)h$
+\end_inset
+
+ and 
+\begin_inset Formula $h=2/(N-1)$
+\end_inset
+
+.
+ In this section, we denote 
+\begin_inset Formula $I_{i,n}$
+\end_inset
+
+ as the number density of infected persons at each 
+\begin_inset Formula $s_{n}$
+\end_inset
+
+ and 
+\begin_inset Formula $β_{ij,n}=hβ_{ij}(s_{n})$
+\end_inset
+
+.
+ Applying this discretization scheme to the PDE equations, we obtain evolution
+ equations for 
+\begin_inset Formula $S_{i},I_{i,n},$
+\end_inset
+
+ and 
+\begin_inset Formula $R_{i}$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS_{i}}{dt}=-R_{0,i}S_{i}\sum_{n=2}^{N}\beta_{ij,n}I_{i,n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{i,0}=R_{0,i}S_{i}\sum_{n=2}^{N}\beta_{ij,n}I_{i,n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI_{i,n}}{dt}=\frac{1}{h}(I_{i,n-1}-I_{i,n})
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dR_{i}}{dt}=I_{i,N}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This maps exactly to the standard age-structured multi-stage SIkR model.
+ Therefore, we confirm that in the limit of 
+\begin_inset Formula $h→0$
+\end_inset
+
+, the age-structured SIkR model is equivalent to an age-structured time
+ since infection model.
+ In practice, however, the convergence is so slow that truncation errors
+ will have a large influence on the predictions.
+ As before, the truncation error can be represented as numerical diffusion
+ in the 
+\begin_inset Formula $s-$
+\end_inset
+
+direction.
+\end_layout
+
+\begin_layout Standard
+As before, one can also employ the more efficient predictor/corrector discretiza
+tion using the method of lines.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Discretization: Galerkin Approximation
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+We can represent each 
+\begin_inset Formula $I_{i}(t,s)$
+\end_inset
+
+ on 
+\begin_inset Formula $s\in[-1,1]$
+\end_inset
+
+ via a truncated Legendre polynomial expansion with 
+\begin_inset Formula $m+1$
+\end_inset
+
+ polynomials:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+I_{i}(t,s)=\sum_{n=0}^{m}I_{i,n}(t)P_{n}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Inserting this into the PDE equations, we obtain:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dS_{i}}{dt}=-R_{0,i}S_{i}\sum_{j=1}^{M}\sum_{n=0}^{m}a_{ij,n}I_{j,n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+a_{ij,n}=\int_{-1}^{1}ds\beta_{ij}(s)P_{n}(s)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\Bigg[\frac{2}{2n+1}\Bigg]\frac{d}{dt}I_{i,n}+\sum_{k=0}^{m}b_{nk,i}I_{i,n}=0
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The coefficients 
+\begin_inset Formula $b_{nk,i}$
+\end_inset
+
+ evaluate to 
+\begin_inset Formula $b_{nk}=2$
+\end_inset
+
+ if 
+\begin_inset Formula $n+k$
+\end_inset
+
+ is odd and 
+\begin_inset Formula $k>n$
+\end_inset
+
+, otherwise they evaluate to zero.
+ The highest order Legendre Polynomial coefficient 
+\begin_inset Formula $I_{i,m}$
+\end_inset
+
+is constrained to satisfy:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\sum_{n=0}^{m}I_{i,n}(-1)^{n}=R_{0,i}S_{i}\sum_{j=1}^{M}\sum_{n=0}^{m}a_{ij,n}I_{j,n}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Linear Stability Analysis
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+As a generalization of the linear stability analysis for the single compartment
+ case, we suppose an initial condition in which nearly the whole population
+ is susceptible and there is a small population of infected growing as 
+\begin_inset Formula $I_{i}(t,s)=I_{0,i}\exp(\lambda(t-s))$
+\end_inset
+
+.
+ The growth rate 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ and relative number of infected in each age compartment 
+\begin_inset Formula $I_{0,i}$
+\end_inset
+
+ can be obtained by considering the following matrix:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+A_{ij}=R_{0,i}S_{i}\sum_{j=1}^{M}\int_{-1}^{1}ds\beta_{ij}(s)e^{-\lambda(s+1)}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The growth rate 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ is the value of lambda for which the largest eigenvalue of 
+\begin_inset Formula $A_{ij}$
+\end_inset
+
+ is equal to one, and the relative number of infected in each age compartment
+ 
+\begin_inset Formula $I_{0,i}$
+\end_inset
+
+ is given by the corresponding eigenvector.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
