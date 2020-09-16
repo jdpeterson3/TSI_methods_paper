@@ -103,7 +103,7 @@ The TSI model with time since infection and its Galerkin approximation
 
 \begin_layout Author
 Joseph D.
- Peterson [additional authors TBD] and Ronojoy Adhikari
+ Peterson and Ronojoy Adhikari
 \end_layout
 
 \begin_layout Address
@@ -128,8 +128,8 @@ Epidemic models are useful tools in the fight against infectious diseases,
  exposed, activated, infectious, etc.) but an epidemic model that explicitly
  tracks time since infection (TSI) can provide a more precise description.
  At present, epidemic models with 'compartments' are more common than TSI
- models for two principal reasons, largely due to higher computational costs
- typically associated with TSI models.
+ models , largely due to higher computational cost and complexity typically
+ associated with TSI models.
  Here, however, we show that with the right discretization scheme a TSI
  model is not much more difficult to solve than a comparment model with
  three or four 'stages' for the infected class.
@@ -138,7 +138,7 @@ Epidemic models are useful tools in the fight against infectious diseases,
  time distributions at each stage.
  These results are also generalized for age-structured TSI models in an
  appendix.
- Finally, as proof-of-principal for the efficiency of the proposed numerical
+ Finally, as proof-of-principle for the efficiency of the proposed numerical
  methods, we provide calculations for optimal epidemic control by non-pharmaceut
 ical intervention.
  Many of the tools described in this report are available through the software
@@ -207,13 +207,13 @@ literal "false"
  In the simplest instance of this framework, a susceptible individual becomes
  infected by encountering an infected person in some way or another.
  An infected person is immediately infectious, and the subsequent transition
- to recovered is effectively a random process with a Poisson distribution.
+ to recovered is effectively a random process with an exponential distribution.
  Compartment-based models like SIR model do capture important features of
  disease transmission, but the reliance on an artificial construction of
  discrete stages with Markov transitions is at odds with the complex medical
  realities of disease progression.
  This can cause problems, for example, when predicting the reproduction
- number of a diseased based on its initial growth dynamics 
+ number of a disease based on its initial growth dynamics 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-10"
@@ -222,11 +222,10 @@ literal "false"
 \end_inset
 
 .
- 
 \end_layout
 
 \begin_layout Standard
-A more realistic model of disease transmission will model the infectiousness
+A more realistic model of disease transmission models the infectiousness
  of an infected individual as a function of the infection age, or the 'time
  since infection' (TSI) 
 \begin_inset CommandInset citation
@@ -260,16 +259,18 @@ literal "false"
 
 \begin_layout Standard
 The advantages of a TSI model for disease dynamics do not eliminate the
- need to resolve discrete compartements.
- In addition to knowing the total number of infected at any point in time,
- one must also make predictions for the total number of hospitalizations
- if there is a risk that the healthcare system might become overwhelmed.
+ need to resolve discrete compartments.
+ For example, in modeling the transmission of SARS-CoV-2, in addition to
+ knowing the total number of infected at any point in time, one must also
+ make predictions for the total number of hospitalizations if there is a
+ risk that the healthcare system might become overwhelmed.
  In this report, we present a very simple and flexible strategy for decoupling
  the residence time distributions at each stage from the overall dynamics
  for transmission.
  Instead of explicitly modelling the occupancy and infectiousness in each
  compartment, we simply keep track of the total infected population at every
- TSI and then apply a filter to determine total occupancy of each compartment.
+ TSI and then apply a filter to determine the total occupancy of each compartmen
+t.
  This makes the whole modelling framework more flexible and it should also
  be more straightforward to parameterize from case data.
 \end_layout
@@ -363,7 +364,7 @@ eutical interventions.
 
 \begin_layout Standard
 The methods described in the present report are available for use in the
- pyRoss epidemic modelling package.
+ pyRoss epidemic modelling package (https://github.com/rajeshrinet/pyross).
 \end_layout
 
 \end_inset
@@ -384,7 +385,7 @@ Governing Equations
 \begin_layout Standard
 \begin_inset Branch sections
 inverted 0
-status open
+status collapsed
 
 \begin_layout Subsection
 The standard SIR model
@@ -529,8 +530,7 @@ literal "false"
 
 .
  Historically, however, models with TSI have been under-utilized due to
- the higher computational costs associated therewith.
- 
+ the higher computational cost and complexity associated therewith.
 \end_layout
 
 \begin_layout Standard
@@ -637,8 +637,8 @@ I(t,0)=\int_{0}^{T}ds\frac{\beta(s)}{N}I(t,s)S
 \begin_layout Standard
 As with the standard SIR model, the equations for susceptibles and infecteds
  are closed.
- However, for pracitical applications of an epidemic model one may also
- need to describe the various sub-classes of the infected population (e.g.
+ However, for practical applications of an epidemic model one may also need
+ to describe the various sub-classes of the infected population (e.g.
  infectious, recovered, hospitalized, deceased, quarantined, asymptomatic,
  etc), with each sub-class 
 \begin_inset Formula $α$
@@ -981,7 +981,7 @@ noprefix "false"
  reflect the nature of the disease itself (like hospitalizations and fatalities)
 , but it is less suited to subclasses whose populations reflect a behavioral
  or societal response to the disease.
- Consider a system in which quarrantines are assigned by a track-and-trace
+ Consider a system in which quarantines are assigned by a track-and-trace
  progam – the probability of being under quarantine at time since infection
  
 \begin_inset Formula $s$
@@ -1125,7 +1125,7 @@ where
 \begin_inset Formula $\alpha$
 \end_inset
 
- and the 'shape' of the distirubiton is defined by parameters 
+ and the 'shape' of the distribution is defined by parameters 
 \begin_inset Formula $a$
 \end_inset
 
@@ -1401,7 +1401,7 @@ status collapsed
 
 \begin_layout Standard
 The PDE can be converted to an approximate ODE representation via the method
- of lines.
+ of lines, perhaps the most common technique used to solve TSI models.
  Here, we discretize 
 \begin_inset Formula $s$
 \end_inset
@@ -2259,7 +2259,7 @@ However, this trick of eliminating
  (or more generally, the contact matrix in an age-structured model) is not
  varying in time.
  In a later subsection, we will show that the boundary constraint should
- be handled implicitly when the reproduciton number varies in time.
+ be handled implicitly when the reproduction number varies in time.
  Implicit algebraic constraints can be costly during numerical integration,
  so the predictor/corrector method may be preferred in these cases.
 \end_layout
@@ -2946,7 +2946,6 @@ noprefix "false"
 \end_inset
 
 , but overall it still appears to match the converged solution very well.
- 
 \end_layout
 
 \begin_layout Standard
@@ -3116,8 +3115,8 @@ As a matter of best practice, one may want to consider using other methods
 \begin_inset Formula $R_{0}(t)$
 \end_inset
 
- is non-smooth – for example, it might be better to use the PC method for
- the short interval 
+ is non-smooth – for example, it might be better to use the predictor-corrector
+ method for the short interval 
 \begin_inset Formula $t\in[t_{0},t_{0}+2]$
 \end_inset
 
@@ -3240,7 +3239,7 @@ noprefix "false"
 \begin_inset Formula $m+1\approx16$
 \end_inset
 
-) for convergence, and unphysical results (c.f.
+) for convergence, and unrealistic results (c.f.
  Figure 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -3389,7 +3388,7 @@ Sample Results: Optimal Control
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status open
+status collapsed
 
 \begin_layout Standard
 A principal motivation of the present report is to develop numerical methods
@@ -3432,7 +3431,7 @@ noprefix "false"
 
  is a control function that modulates the effective reproduction number.
  This control function could describe non-pharmaceutical interventions such
- as social distancing and lockdowns.
+ as social distancing and lockdowns to prevent the transmission of SARS-CoV-2.
  For simplicity, we choose to describe the control function 
 \begin_inset Formula $u(t)$
 \end_inset
@@ -3446,7 +3445,7 @@ noprefix "false"
 \begin_inset Formula $R_{0}(t)$
 \end_inset
 
- non-smooth, we employ the PC method of section 
+ non-smooth, we employ the predictor-corrector method of section 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "subsec:PC"
@@ -3459,7 +3458,7 @@ noprefix "false"
  to evolve the epidemic forward in time.
  The position and value of the interpolation points are locally optimized
  using the COBYLA algorithm in the optimization package 'nlopt'.
- We also use the epidemic modelling package 'pyrossTSI' to solve the epidemic
+ We also use the epidemic modelling package 'pyross' to solve the epidemic
  model using the PC method with 
 \begin_inset Formula $N=16$
 \end_inset
@@ -3525,7 +3524,6 @@ Large values of
 
  describe epidemics that are more deadly and/or less costly to contain (e.g.
  Ebola or MERS).
- 
 \end_layout
 
 \begin_layout Standard
@@ -3606,7 +3604,7 @@ containing the disease is futile – the focus is not on preventing the epidemic
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \align center
@@ -3666,7 +3664,7 @@ and
 \begin_inset Float figure
 wide false
 sideways false
-status open
+status collapsed
 
 \begin_layout Plain Layout
 \align center
@@ -3747,11 +3745,19 @@ status collapsed
 \begin_layout Standard
 Epidemic models are useful tools in the fight against infectious diseases,
  but they are often forced to strike a balance between accuracy and complexity.
- In the present work, we show that it is possible to retain a full 'time
- since infection' model of disease transmission without making the model
- much more difficult to solve from a numerics standpoint.
- In particular, we present a novel 'Galerkin' discretization of a TSI model
- with spectral accuracy.
+ Infection-age or time since infection (TSI) models allow both non-exponential
+ distributions of passage times as well as changes in parameters such as
+ infectivity over time, but have not been widely adopted, largely as introducing
+ additional compartments into an ordinary differential equation model is
+ simple to implement using standard ODE solver software packages, even though
+ such models may be less biologically realistic than their TSI counterparts.
+ In the present work, we show that it is possible to retain a full TSI model
+ of disease transmission without making the model much more difficult to
+ solve from a numerics standpoint.
+ In particular, we present a parameterization of the model that decouples
+ changes in discrete subcompartments of infected individuals from changes
+ in infectivity, and a novel 'Galerkin' discretization of a TSI model with
+ spectral accuracy.
  We have discussed the advantages (accuracy with low modes) and disadvantages
  (robustness under unsteady dynamics) of the Galerkin approximation, and
  also provided proof-of-concept calculations for 'optimal control' using
@@ -3762,7 +3768,7 @@ Epidemic models are useful tools in the fight against infectious diseases,
  a wide range of applications in which they were previously not considered
  feasible.
  The tools and methods described in the present report (including the age-struct
-ured version) are all freely available through the software package pyrossTSI.
+ured version) are all freely available through the software package pyross.
 \end_layout
 
 \end_inset
@@ -3784,7 +3790,6 @@ L.
  128, no.
  1, pp.
  71 - 92, 1995.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3800,7 +3805,6 @@ F.
  297, no.
  5, pp.
  325 - 333, 1974.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3823,7 +3827,6 @@ D.
  1, no.
  3, pp.
  132 - 145, 2010.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3842,7 +3845,6 @@ S.
  22, no.
  4, pp.
  1065 - 1080, 1991.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3862,7 +3864,6 @@ gs of the royal society of london.
  115, no.
  772, pp.
  700 - 721, 1927.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3879,7 +3880,6 @@ Diekmann, Odo and R.
  14, no.
  1, pp.
  117 - 127, 1982.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3892,7 +3892,6 @@ key "key-10"
 A.
  Grant, "Dynamics of COVID‐19 epidemics: SEIR models underestimate peak
  infection rates and overestimate epidemic duration," medRxiv, 2020.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3909,7 +3908,6 @@ O.
  vol.
  10, no.
  84, 2013.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3923,7 +3921,6 @@ A.
  Murillo and J.
  Alturo, "An epidemic model structured by the time since last infection,"
  thesis, Purdue University, 2013.
- 
 \end_layout
 
 \begin_layout Bibliography
@@ -3940,7 +3937,6 @@ A.
  60, no.
  1, pp.
  59 - 71, 2001.
- 
 \end_layout
 
 \begin_layout Section
@@ -3980,7 +3976,7 @@ In many cases, it is important to resolve predictions for how an epidemic
 \end_inset
 
 .
- Likewise, in this appendix the population that’s assigned to class 
+ Likewise, in this appendix the population that is assigned to class 
 \begin_inset Formula $i$
 \end_inset
 
@@ -4029,7 +4025,7 @@ is referred to as the 'contact matrix'.
 .
  The full PDE version 
 \begin_inset Foot
-status collapsed
+status open
 
 \begin_layout Plain Layout
 The age compartments arise via a discretization of a more general PDE model
