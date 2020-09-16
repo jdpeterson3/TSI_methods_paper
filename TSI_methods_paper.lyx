@@ -30,7 +30,7 @@
 \index_command default
 \float_placement H
 \paperfontsize default
-\spacing single
+\spacing onehalf
 \use_hyperref false
 \papersize default
 \use_geometry true
@@ -117,21 +117,30 @@ inverted 0
 status collapsed
 
 \begin_layout Standard
-Epidemic models are useful tools in the fight against infectious diseases.
- However, the need for fine-grained resolution of details related to geography
- and demographics often constrains the amount of detail that one can include
- in the underlying model for disease transmission.
- At the same time, simplifications to the model of disease transmission
- will propagate through the rest of the epidemic model with effects that
- are generally difficult to anticipate.
- Therefore, a good disease transmission model must strike a balance between
- accuracy and complexity.
- For example, it is desirable to represent disease dynamics as a function
- of time since infection (TSI) but the costs to implement such models at
- scale will often prove prohibitive.
- In this report, we present some new strategies for solving TSI models and
- provide proof-of-concept calculations for optimal control by non-pharmaceutical
- intervention.
+Epidemic models are useful tools in the fight against infectious diseases,
+ as they allow policy makers to test and compare various strategies to limit
+ disease transmission while mitigating collateral damage on the economy.
+ Epidemic models that are more faithful to the microscopic details of disease
+ transmission can offer more reliable projections, which in turn can lead
+ to more reliable control strategies.
+ For example, many epidemic models describe disease progression via a series
+ of artificial 'stages' or 'compartments' (e.g.
+ exposed, activated, infectious, etc.) but an epidemic model that explicitly
+ tracks time since infection (TSI) can provide a more precise description.
+ At present, epidemic models with 'compartments' are more common than TSI
+ models for two principal reasons, largely due to higher computational costs
+ typically associated with TSI models.
+ Here, however, we show that with the right discretization scheme a TSI
+ model is not much more difficult to solve than a comparment model with
+ three or four 'stages' for the infected class.
+ We also provide a new perspective for adding 'stages' to a TSI model in
+ a way that decouples the disease transmission dynamics from the residence
+ time distributions at each stage.
+ These results are also generalized for age-structured TSI models in an
+ appendix.
+ Finally, as proof-of-principal for the efficiency of the proposed numerical
+ methods, we provide calculations for optimal epidemic control by non-pharmaceut
+ical intervention.
  Many of the tools described in this report are available through the software
  package 'pyross'
 \end_layout
@@ -155,20 +164,17 @@ Background and Introduction
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status collapsed
+status open
 
 \begin_layout Standard
-Epidemic modelling is a valuable tool for making well-controlled predictions
- about how a disease is likely to spread through a population.
- Predictions from these models can inform strategies that mitigate the damage
- said disease will cause.
- Better strategies are possible with better epidemic modelling, and ultimately
- an epidemic model is only as reliable as the assumptions it makes.
-\end_layout
-
-\begin_layout Standard
-Good epidemic models must be able to provide fine-grained descriptions for
- how a disease is spreading.
+Epidemic modelling is a valuable tool for both (1) predicting how a disease
+ will spread through a population and (2) testing and optimizing control
+ strategies to mitigate the damage.
+ Better control strategies are possible with better epidemic modelling,
+ and ultimately an epidemic model is only as reliable as the assumptions
+ it makes.
+ Good epidemic models must be able to provide fine-grained descriptions
+ for how a disease is spreading.
  It is not enough to simply predict a number of infected persons – one must
  also be able to predict the spread of disease from city-to-city and age
  group to age group, for example 
@@ -180,9 +186,9 @@ literal "false"
 \end_inset
 
 .
- Given the burden of complexity an epidemic model is expected to bear, one
- cannot usually afford much more than an elementary model of disease transmissio
-n at each level.
+ Given the full burden of complexity an epidemic model is expected to bear,
+ one cannot usually afford much more than an elementary model of disease
+ transmission at each level.
 \end_layout
 
 \begin_layout Standard
@@ -206,11 +212,23 @@ literal "false"
  disease transmission, but the reliance on an artificial construction of
  discrete stages with Markov transitions is at odds with the complex medical
  realities of disease progression.
+ This can cause problems, for example, when predicting the reproduction
+ number of a diseased based on its initial growth dynamics 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-10"
+literal "false"
+
+\end_inset
+
+.
+ 
 \end_layout
 
 \begin_layout Standard
 A more realistic model of disease transmission will model the infectiousness
- of an infected individual as a function of the time since infection 
+ of an infected individual as a function of the infection age, or the 'time
+ since infection' (TSI) 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-8,key-5,key-9"
@@ -219,10 +237,11 @@ literal "false"
 \end_inset
 
  Does a person become infectious right away, or is there a delay of several
- days? When is a person most infectious? What is the probability distribution
- for recoverty times? The answer to these questions will shape how a disease
- spreads, and so epidemic models that track time since infection in the
- infectious population are very important 
+ days before they can transmit? When is a person most infectious? What is
+ the probability distribution for recoverty times? These details (which
+ define the actual transmission dynamics) are naturally incorporated into
+ a TSI model, but they can be difficult to match precisely in a compartment
+ model 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-10,key-11"
@@ -231,15 +250,120 @@ literal "false"
 \end_inset
 
 .
-\end_layout
-
-\begin_layout Standard
-On the surface, it might seem that any epidemic model based on time since
+ On the surface, it might seem that any epidemic model based on time since
  infection will be substantially more complex than the basic SIR model and
  therefore of limited value to fine-grained epidemic modelling applications.
  In this report, however, we will show that the SIR model can be extended
  to consider time-since-infection without making the model much more difficult
  to solve.
+\end_layout
+
+\begin_layout Standard
+The advantages of a TSI model for disease dynamics do not eliminate the
+ need to resolve discrete compartements.
+ In addition to knowing the total number of infected at any point in time,
+ one must also make predictions for the total number of hospitalizations
+ if there is a risk that the healthcare system might become overwhelmed.
+ In this report, we present a very simple and flexible strategy for decoupling
+ the residence time distributions at each stage from the overall dynamics
+ for transmission.
+ Instead of explicitly modelling the occupancy and infectiousness in each
+ compartment, we simply keep track of the total infected population at every
+ TSI and then apply a filter to determine total occupancy of each compartment.
+ This makes the whole modelling framework more flexible and it should also
+ be more straightforward to parameterize from case data.
+\end_layout
+
+\begin_layout Standard
+By way of overview, this report is arranged as follows: First, in section
+ 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Governing-Equations"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we present the governing equations for a TSI model, including the use
+ of a filter over the infected population.
+ We non-dimensionalize the governing equations (section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Nondimensionalization"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+) and then offer three different numerical methods by which the TSI model
+ can be integrated in time.
+ In particular, section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:Galerkin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ introduces a novel Galerkin approximation with a spectral discretization
+ of the infected population.
+ The generalization of section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Governing-Equations"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ to age-structured epidemic models is provided in the appendix.
+ In section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Sample-Results:-Simple"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we provide sample results for epidemic curves obtained from the three
+ discretization strategies, and in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Galerkin_problems"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we discuss potential limitations of the Galerkin discretization.
+ Finally, in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Sample-Results:-Optimal"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we go beyond simple epidemic curves to consider optimal control by non-pharmac
+eutical interventions.
+ To our knowledge, this is the first time that such calculations have been
+ performed for a TSI modelling framework.
+\end_layout
+
+\begin_layout Standard
+The methods described in the present report are available for use in the
+ pyRoss epidemic modelling package.
 \end_layout
 
 \end_inset
@@ -248,13 +372,19 @@ On the surface, it might seem that any epidemic model based on time since
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Governing-Equations"
+
+\end_inset
+
 Governing Equations
 \end_layout
 
 \begin_layout Standard
 \begin_inset Branch sections
 inverted 0
-status collapsed
+status open
 
 \begin_layout Subsection
 The standard SIR model
@@ -372,12 +502,24 @@ Basic TSI equations
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status collapsed
+status open
 
 \begin_layout Standard
 Models that include time since infection are not new, and in fact the equations
- presented here are covered by existing models for epidemics, many of which
- are more general 
+ presented here [apart from those pertaining to the filtering convention,
+ c.f.
+ Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:partitioning"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+] are covered by existing models for epidemics, many of which are more general
+ 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-5,key-9,key-12"
@@ -386,21 +528,9 @@ literal "false"
 \end_inset
 
 .
- However, models with time-since-infection have historically been computationall
-y expensive.
- As a compromise between accuracy and usability, ‘multi-stage’ models are
- a popular strategy for approximating true time-since-infection models 
-\begin_inset CommandInset citation
-LatexCommand cite
-key "key-13,key-11"
-literal "false"
-
-\end_inset
-
-.
- Here, however, we will show that this compromise is not necessary – with
- the right numerical methods, one can obtain all the accuracy of time-since-infe
-ction for the same computational cost as a typical multi-stage model.
+ Historically, however, models with TSI have been under-utilized due to
+ the higher computational costs associated therewith.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -1047,6 +1177,12 @@ This same parameterization strategy also applies to the rate constant for
 \end_layout
 
 \begin_layout Subsection
+\begin_inset CommandInset label
+LatexCommand label
+name "subsec:Nondimensionalization"
+
+\end_inset
+
 Nondimensionalization
 \end_layout
 
@@ -2158,6 +2294,12 @@ noprefix "false"
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Sample-Results:-Simple"
+
+\end_inset
+
 Sample Results: Simple Calculations
 \end_layout
 
@@ -3195,6 +3337,12 @@ noprefix "false"
 \end_layout
 
 \begin_layout Section
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Sample-Results:-Optimal"
+
+\end_inset
+
 Sample Results: Optimal Control
 \end_layout
 
