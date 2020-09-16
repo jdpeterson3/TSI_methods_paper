@@ -164,7 +164,7 @@ Background and Introduction
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status open
+status collapsed
 
 \begin_layout Standard
 Epidemic modelling is a valuable tool for both (1) predicting how a disease
@@ -502,7 +502,7 @@ Basic TSI equations
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status open
+status collapsed
 
 \begin_layout Standard
 Models that include time since infection are not new, and in fact the equations
@@ -726,10 +726,16 @@ This 'partitioning' strategy is somewhat different than what one often sees
  infected population between different compartments while keeping track
  of the 'time since arrival' in each compartment.
  We prefer the partitioning scheme presented here for two reasons: First,
- it eliminates the need for (and the influence of) artificially constructed
- stages.
- Second, and more importantly, it is a severe approximation to say that
- the distribution of exit times from a present stage (e.g.
+ it eliminates the need for and the influence of artificially constructed
+ stages (e.g.
+ 'exposed', 'asymptomatic', etc.).
+ Second, it decouples assignments to compartments from the disease dynamics
+ defined by 
+\begin_inset Formula $\beta(s).$
+\end_inset
+
+ Third, and perhaps most importantly, it is a severe approximation to say
+ that the distribution of exit times from a present stage (e.g.
  hospitalization) depends only on the time since arrival and not on the
  time since infection.
  In our approach, we note that since time since arrival depends on time
@@ -818,6 +824,23 @@ noprefix "false"
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Thus, we can independently control the overall disease dynamics given by
+ 
+\begin_inset Formula $\beta(s)$
+\end_inset
+
+ and the overall partitioning given by 
+\begin_inset Formula $\Phi^{\alpha}$
+\end_inset
+
+ without having to settle the details for each 
+\begin_inset Formula $\beta_{\alpha}(s)$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -1254,15 +1277,15 @@ Before proceeding further, it is helpful to recast the governing equations
 \end_inset
 
 , and we rescale all 
-\begin_inset Formula $\tilde{\phi}_{\alpha}=\phi_{\alpha}T_{C}$
+\begin_inset Formula $\tilde{\phi}^{\alpha}=\phi^{\alpha}T_{C}$
 \end_inset
 
  in the same way so that 
-\begin_inset Formula $\int_{-1}^{1}d\tilde{s}\tilde{\phi}_{\alpha}(\tilde{s})=p_{\alpha}$
+\begin_inset Formula $\int_{-1}^{1}d\tilde{s}\tilde{\phi}^{\alpha}(\tilde{s})=p^{\alpha}$
 \end_inset
 
 , where 
-\begin_inset Formula $p_{\alpha}$
+\begin_inset Formula $p^{\alpha}$
 \end_inset
 
  is the probability that 
@@ -1317,7 +1340,18 @@ I(t,-1)=R_{0}S\int_{-1}^{1}ds\beta(s)I(t,s)\label{eq:ndim_bc}
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-\frac{dR}{dt}=I(t,1)
+\frac{dR}{dt}=I(t,s=1)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{dI^{\alpha}}{dt}=\int_{-1}^{1}ds\phi^{\alpha}(s)I(t,s)
 \end{equation}
 
 \end_inset
@@ -1385,7 +1419,7 @@ The PDE can be converted to an approximate ODE representation via the method
 \begin_inset Formula $O(h)$
 \end_inset
 
- -- about as bad as any stable numerical scheme can be.
+ - about as bad as any stable numerical scheme can be.
  We will show that this choice of discretization maps the TSI model to the
  standard multi-stage generalization of SIR model 
 \begin_inset CommandInset citation
@@ -1592,11 +1626,6 @@ noprefix "false"
 \end_inset
 
  stages more generally.
- Therefore, we confirm that in the limit of 
-\begin_inset Formula $h→0$
-\end_inset
-
-, the SIkR model is equivalent to a true time-since infection model.
  In practice, however, the convergence is so slow that truncation errors
  will have a large influence on the predictions.
  Therefore, we discuss the truncation errors introduced by this scheme and
@@ -1700,7 +1729,7 @@ status collapsed
 
 \begin_layout Standard
 In the preceding section, we showed that the SIkR model is an approximation
- of a TSI model with first order accuracy, 
+ of our TSI model with first order accuracy, 
 \begin_inset Formula $O(h)$
 \end_inset
 
@@ -1719,7 +1748,7 @@ In the preceding section, we showed that the SIkR model is an approximation
 \end_layout
 
 \begin_layout Standard
-We evaluate the solution at discrete 
+We evaluate the solution at discrete points 
 \begin_inset Formula $s_{1},s_{2},s_{3}…,s_{N}$
 \end_inset
 
@@ -2170,7 +2199,7 @@ The highest order polynomial coefficient
 \end_inset
 
  is constrained by the boundary condition at 
-\begin_inset Formula $s=0$
+\begin_inset Formula $s=-1$
 \end_inset
 
  (c.f.
@@ -2223,14 +2252,14 @@ However, this trick of eliminating
 \begin_inset Formula $I_{m}$
 \end_inset
 
- only works when the reproduction number 
+ works best when the reproduction number 
 \begin_inset Formula $R_{0}$
 \end_inset
 
  (or more generally, the contact matrix in an age-structured model) is not
  varying in time.
- In a later subsection, we will show that the boundary constraint must be
- handled implicitly when the reproduciton number varies in time.
+ In a later subsection, we will show that the boundary constraint should
+ be handled implicitly when the reproduciton number varies in time.
  Implicit algebraic constraints can be costly during numerical integration,
  so the predictor/corrector method may be preferred in these cases.
 \end_layout
@@ -2878,11 +2907,12 @@ If there are step-wise changes or 'kinks' in
 .
  Spectral methods (including those based on Legendre Polynomials) are less
  accurate when representing non-smooth functions, so the Galerkin discretization
- will sometimes perform poorly following non-smooth dynamics in 
+ will sometimes (but not always!) perform poorly following non-smooth dynamics
+ in 
 \begin_inset Formula $R_{0}(t)$
 \end_inset
 
- – but sometimes it appears to work just fine.
+.
  As an example, we replicate the calculations of the preceding section but
  impose 
 \begin_inset Formula $R_{0}(t>3)=1$
@@ -3179,7 +3209,17 @@ However, even with a good choice of initial conditions and a smoothly varying
 \end_inset
 
  with a much smaller number of modes.
- In Figure XX, we compare converged predictions for 
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:steady vs unsteady R0=2"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we compare converged predictions for 
 \begin_inset Formula $R_{0}=2$
 \end_inset
 
@@ -3278,7 +3318,7 @@ Finally, whenever the reproduction number is varying in time – on any timescal
 \end_inset
 
  that approximately preserves the property 
-\begin_inset Formula $I(t,s)=I(t-s,0)$
+\begin_inset Formula $I(t,s>t-1)=I(t-(s+1),-1)$
 \end_inset
 
  whenever the boundary condition 
@@ -3307,7 +3347,7 @@ noprefix "false"
 \begin_inset Formula $I(t,s)$
 \end_inset
 
- leads to measurable errors in the trajectories for 
+ leads to notable errors in the trajectories for 
 \begin_inset Formula $S$
 \end_inset
 
@@ -3349,7 +3389,7 @@ Sample Results: Optimal Control
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status collapsed
+status open
 
 \begin_layout Standard
 A principal motivation of the present report is to develop numerical methods
@@ -3392,7 +3432,7 @@ noprefix "false"
 
  is a control function that modulates the effective reproduction number.
  This control function could describe non-pharmaceutical interventions such
- as social distancing.
+ as social distancing and lockdowns.
  For simplicity, we choose to describe the control function 
 \begin_inset Formula $u(t)$
 \end_inset
@@ -3417,8 +3457,8 @@ noprefix "false"
 \end_inset
 
  to evolve the epidemic forward in time.
- The position and value of the interpolation points are optimized using
- the COBYLA algorithm in the optimization package 'nlopt'.
+ The position and value of the interpolation points are locally optimized
+ using the COBYLA algorithm in the optimization package 'nlopt'.
  We also use the epidemic modelling package 'pyrossTSI' to solve the epidemic
  model using the PC method with 
 \begin_inset Formula $N=16$
@@ -3429,7 +3469,7 @@ noprefix "false"
 
 \begin_layout Standard
 Optimal control calculations require a cost function, which we represent
- as the sum of a social distancing costs and the cost of infections evaluated
+ as the sum of a social distancing cost and the cost of infections evaluated
  on an interval 
 \begin_inset Formula $t\in[0,T_{f}]$
 \end_inset
@@ -3566,7 +3606,7 @@ containing the disease is futile – the focus is not on preventing the epidemic
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \align center
@@ -3626,7 +3666,7 @@ and
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \align center
