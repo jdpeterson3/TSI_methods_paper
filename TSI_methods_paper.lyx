@@ -3753,6 +3753,29 @@ ured version) are all freely available through the software package pyross.
 
 \end_layout
 
+\begin_layout Section
+Acknowledgments
+\end_layout
+
+\begin_layout Standard
+\begin_inset Branch body text
+inverted 0
+status collapsed
+
+\begin_layout Standard
+The authors are grateful for support from [Funding sources, including ERC
+ for me].
+ We are also grateful to Simon Frost and Robert Jack for their valuable
+ feedback on this project, and also to Rajesh Singh for his help incorporating
+ the methods outlined in this report into the epidemic modelling framework
+ of pyross.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Bibliography
 \begin_inset CommandInset bibitem
 LatexCommand bibitem
