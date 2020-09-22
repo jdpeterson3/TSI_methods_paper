@@ -98,7 +98,7 @@
 \begin_body
 
 \begin_layout Title
-The TSI model with time since infection and its Galerkin approximation
+Efficient and flexible methods for time since infection models
 \end_layout
 
 \begin_layout Author
@@ -164,7 +164,7 @@ Background and Introduction
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status collapsed
+status open
 
 \begin_layout Standard
 Epidemic modelling is a valuable tool for both (1) predicting how a disease
@@ -208,6 +208,9 @@ literal "false"
  infected by encountering an infected person in some way or another.
  An infected person is immediately infectious, and the subsequent transition
  to recovered is effectively a random process with an exponential distribution.
+ In the limit of a large population, the mean result over a large number
+ of random transitions is predictable, and so deterministic versions of
+ the model (like those considered in this report) are often preferred.
  Compartment-based models like SIR model do capture important features of
  disease transmission, but the reliance on an artificial construction of
  discrete stages with Markov transitions is at odds with the complex medical
@@ -266,7 +269,7 @@ The advantages of a TSI model for disease dynamics do not eliminate the
  risk that the healthcare system might become overwhelmed 
 \begin_inset CommandInset citation
 LatexCommand cite
-key "key-3"
+key "key-3,key-14"
 literal "false"
 
 \end_inset
@@ -393,10 +396,10 @@ Governing Equations
 \begin_layout Standard
 \begin_inset Branch sections
 inverted 0
-status collapsed
+status open
 
 \begin_layout Subsection
-The standard SIR model
+The deterministic SIR model
 \end_layout
 
 \begin_layout Standard
@@ -405,7 +408,7 @@ inverted 0
 status collapsed
 
 \begin_layout Standard
-For pedagogical purposes, we first review the standard SIR model.
+For pedagogical purposes, we first review the deterministic SIR model.
  The SIR model is simpler than the basic TSI model, but it shares a similar
  underlying structure.
  The number of susceptibles, 
@@ -501,13 +504,13 @@ where
 \end_layout
 
 \begin_layout Subsection
-Basic TSI equations
+Basic deterministic TSI equations
 \end_layout
 
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status collapsed
+status open
 
 \begin_layout Standard
 Models that include time since infection are not new, and in fact the equations
@@ -535,6 +538,31 @@ literal "false"
 .
  Historically, however, models with TSI have been under-utilized due to
  the higher computational cost and complexity associated therewith.
+ It should also be noted that compartment models like SIR can also be represente
+d as TSI models 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+literal "false"
+
+\end_inset
+
+ and TSI models can also be discretized into compartment models (c.f.
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "subsec:SIkR"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+).
+ The distinction between the two is one of frameworks, not physics.
+ When it is important to accurately describe disease dynamics in terms of
+ time since infection, it is our view that the TSI modelling framework provides
+ a more efficient and flexible set of tools to work with.
 \end_layout
 
 \begin_layout Standard
@@ -2439,7 +2467,7 @@ Thus, we see that the growth rate
  Equivalent results have been previously reported for TSI models 
 \begin_inset CommandInset citation
 LatexCommand cite
-key "key-1"
+key "key-13"
 literal "false"
 
 \end_inset
@@ -3988,6 +4016,20 @@ N.
  Ferguson, et al.
  "Report 9: Impact of non-pharmaceutical interventions (NPIs) to reduce
  COVID19 mortality and healthcare demand." (2020).
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-14"
+literal "false"
+
+\end_inset
+
+Adhikari, R., et al.
+ "Inference, prediction and optimization of non-pharmaceutical interventions
+ using compartment models: the PyRoss library." arXiv preprint arXiv:2005.09625
+ (2020).
 \end_layout
 
 \begin_layout Section
