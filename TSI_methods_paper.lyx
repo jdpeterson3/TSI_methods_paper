@@ -207,7 +207,8 @@ literal "false"
  In the simplest instance of this framework, a susceptible individual becomes
  infected by encountering an infected person in some way or another.
  An infected person is immediately infectious, and the subsequent transition
- to recovered is effectively a random process with an exponential distribution.
+ to recovered is has no memory of the time spent being infected (i.e.
+ it is a random process with an exponential distribution of residence times).
  In the limit of a large population, the mean result over a large number
  of random transitions is predictable, and so deterministic versions of
  the model (like those considered in this report) are often preferred.
@@ -240,10 +241,10 @@ literal "false"
 
  Does a person become infectious right away, or is there a delay of several
  days before they can transmit? When is a person most infectious? What is
- the probability distribution for recoverty times? These details (which
- define the actual transmission dynamics) are naturally incorporated into
- a TSI model, but they can be difficult to match precisely in a compartment
- model 
+ the probability distribution for recovery times? These details (which define
+ the actual transmission dynamics) are naturally incorporated into a TSI
+ model, but they can be difficult to match precisely in a compartment model
+ 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-10,key-11"
@@ -396,7 +397,7 @@ Governing Equations
 \begin_layout Standard
 \begin_inset Branch sections
 inverted 0
-status open
+status collapsed
 
 \begin_layout Subsection
 The deterministic SIR model
@@ -510,7 +511,7 @@ Basic deterministic TSI equations
 \begin_layout Standard
 \begin_inset Branch body text
 inverted 0
-status open
+status collapsed
 
 \begin_layout Standard
 Models that include time since infection are not new, and in fact the equations
@@ -742,10 +743,13 @@ A graphical representation of how an infected population might be partitioned
 
 \begin_layout Standard
 The partitioning strategy is somewhat different than what one often sees
- in a TSI model containing sub-classes of the infected population.
- To our understanding, the more common treatment is to explicitly move the
- infected population between different compartments while keeping track
- of the 'time since arrival' in each compartment 
+ in a TSI model containing sub-classes of the infected population, and it
+ is only viable because we are interested in the deterministic (as opposed
+ to stochastic) version of the model.
+ To our understanding, the more common treatment (for both deterministic
+ and stochastic models) is to explicitly move the infected population between
+ different compartments while keeping track of the 'time since arrival'
+ in each compartment 
 \begin_inset CommandInset citation
 LatexCommand cite
 key "key-3"
@@ -3497,7 +3501,7 @@ Optimal control calculations require a cost function, which we represent
 \begin_inset Formula $\Omega$
 \end_inset
 
- as a constant of proportionality between these two costs so that the cotal
+ as a constant of proportionality between these two costs so that the total
  cost 
 \begin_inset Formula $C$
 \end_inset
@@ -4040,7 +4044,7 @@ Class-structured TSI model
 \begin_layout Standard
 \begin_inset Branch sections
 inverted 0
-status collapsed
+status open
 
 \begin_layout Subsection
 Dimensional Governing Equations
